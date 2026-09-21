@@ -1,0 +1,31 @@
+# Real customer data and captures: never tracked
+/out/
+**/out-*/
+*.zip
+
+# Secrets and local config
+.env
+*.pfx
+*.p12
+secrets.dat
+appsettings.Local.json
+
+# Build output
+bin/
+obj/
+publish/
+dist/
+node_modules/
+*.log
+
+# Editor / OS
+.vs/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Agent tooling (local to each developer)
+/.claude/
+/.agents/
+/.sbo-skills/
+/skills-lock.json
