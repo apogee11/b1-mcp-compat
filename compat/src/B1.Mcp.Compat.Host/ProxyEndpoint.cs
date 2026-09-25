@@ -1,0 +1,310 @@
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using B1.Mcp.Compat.Core.Catalog;
+using B1.Mcp.Compat.Core.Edm;
+using B1.Mcp.Compat.Core.Kb;
+using B1.Mcp.Compat.Core.Mappings;
+using B1.Mcp.Compat.Core.Metadata;
+using B1.Mcp.Compat.Core.Personal;
+
+namespace B1.Mcp.Compat.Host;
+
+/// <summary>
+/// The HTTP proxy: everything is passed through to the Service Layer except two things an older Service Layer cannot answer:
+/// the annotated $metadata (scope=entityset) and PersonalFieldsSetupsService_GetPersonalFieldsByTable.
+/// An upstream that natively supports the annotations is detected and then passed through untouched.
+/// </summary>
+public sealed partial class ProxyEndpoint
+{
+    private readonly CompatOptions _o;
+    private readonly HttpClient _http;
+    private readonly string _upstream;
+    private readonly KnowledgeBase _kb;
+    private readonly MetadataSynthesizer _synth;
+    private readonly ICompanyDatabase _db;
+    private readonly SessionRegistry _sessions = new();
+    private readonly ILogger _log;
+    private readonly TtlCache<EdmModel> _models = new(TimeSpan.FromMinutes(10));
+    private readonly TtlCache<CompanyCatalog> _catalogs = new(TimeSpan.FromMinutes(5));
+    private readonly TtlCache<IReadOnlyList<PersonalFieldRow>> _personal = new(TimeSpan.FromMinutes(5));
+    private bool? _native;
+
+    private static readonly HashSet<string> SkipRequestHeaders = new(StringComparer.OrdinalIgnoreCase)
+        { "host", "content-length", "connection", "accept-encoding", "expect", "transfer-encoding", "keep-alive", "proxy-connection", "upgrade" };
+
+    private static readonly HashSet<string> SkipResponseHeaders = new(StringComparer.OrdinalIgnoreCase)
+        { "content-encoding", "transfer-encoding", "content-length", "set-cookie", "connection", "keep-alive" };
+
+    public ProxyEndpoint(CompatOptions o, HttpClient http, KnowledgeBase kb, MappingOverrides ov, ICompanyDatabase db, ILogger log)
+    {
+        _o = o;
+        _http = http;
+        _upstream = o.Upstream.Url.TrimEnd('/');
+        _kb = kb;
+        _synth = new MetadataSynthesizer(kb, ov);
+        _db = db;
+        _log = log;
+    }
+
+    [GeneratedRegex(@"/b1s/v2/\$metadata$", RegexOptions.IgnoreCase)] private static partial Regex MetadataPath();
+    [GeneratedRegex(@"/PersonalFieldsSetupsService_GetPersonalFieldsByTable$", RegexOptions.IgnoreCase)] private static partial Regex PersonalPath();
+    [GeneratedRegex(@"/b1s/v\d+/Login$", RegexOptions.IgnoreCase)] private static partial Regex LoginPath();
+    [GeneratedRegex(@"B1SESSION=([^;]+)")] private static partial Regex SessionCookie();
+    [GeneratedRegex(@";\s*Secure", RegexOptions.IgnoreCase)] private static partial Regex SecureAttr();
+    [GeneratedRegex(@";\s*SameSite=None", RegexOptions.IgnoreCase)] private static partial Regex SameSiteNone();
+
+    public async Task HandleAsync(HttpContext ctx)
+    {
+        var req = ctx.Request;
+        var path = req.Path.Value ?? "/";
+        try
+        {
+            if (HttpMethods.IsGet(req.Method) && MetadataPath().IsMatch(path) && req.Query["scope"].Contains("entityset") && !await IsNativeAsync(ctx))
+            {
+                await ServeMetadataAsync(ctx);
+                return;
+            }
+            if (HttpMethods.IsPost(req.Method) && PersonalPath().IsMatch(path))
+            {
+                await ServePersonalAsync(ctx);
+                return;
+            }
+            await ForwardAsync(ctx, null);
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException)
+        {
+            _log.LogError("Upstream error on {Method} {Path}: {Msg}", req.Method, path, e.Message);
+            if (!ctx.Response.HasStarted) await WriteJsonAsync(ctx, 502, ErrorJson($"b1-mcp-compat: the Service Layer at {_upstream} could not be reached: {e.Message}"));
+        }
+    }
+
+    // ------------------------------------------------------------ metadata
+
+    private async Task<bool> IsNativeAsync(HttpContext ctx)
+    {
+        if (_native is { } n) return n;
+        using var r = await SendAsync(ctx, HttpMethod.Get, "/b1s/v2/$metadata?scope=entityset&annotation=labelWithTable", null, Accept: null);
+        if (!r.IsSuccessStatusCode) return false; // cannot tell (e.g. session expired): do not cache; the legacy path will surface the error
+        var text = await r.Content.ReadAsStringAsync(ctx.RequestAborted);
+        _native = text.Contains("SAPB1.TableName", StringComparison.Ordinal);
+        _log.LogInformation("Upstream natively supports annotated metadata: {Native}", _native);
+        return _native.Value;
+    }
+
+    private string? CompanyOf(HttpContext ctx) => _sessions.CompanyFor(SessionOf(ctx));
+
+    private static string? SessionOf(HttpContext ctx) => ctx.Request.Cookies.TryGetValue("B1SESSION", out var s) ? s : null;
+
+    private async Task ServeMetadataAsync(HttpContext ctx)
+    {
+        var q = MetadataQuery.Parse(k => ctx.Request.Query[k].Select(v => v ?? ""));
+        var company = CompanyOf(ctx);
+        if (company == null)
+        {
+            await WriteJsonAsync(ctx, 502, ErrorJson("b1-mcp-compat: the company database of this session is unknown. Log in through the connector (POST /b1s/v2/Login) so the CompanyDB can be captured."));
+            return;
+        }
+        try
+        {
+            var model = await _models.GetAsync(company, async () =>
+            {
+                using var r = await SendAsync(ctx, HttpMethod.Get, "/b1s/v2/$metadata", null, Accept: "application/xml");
+                if (!r.IsSuccessStatusCode) throw new UpstreamStatusException((int)r.StatusCode, await r.Content.ReadAsStringAsync(ctx.RequestAborted));
+                return EdmModel.Parse(await r.Content.ReadAsStringAsync(ctx.RequestAborted));
+            });
+            var catalog = new LazyCatalog(ct => _catalogs.GetAsync(company, () => _db.LoadCatalogAsync(company, ct)));
+            var xml = await _synth.BuildAsync(q, model, catalog, s => _log.LogWarning("Entity set {Name} skipped from the list: not in the knowledge base and not a user table/object of {Company}", s, company), ctx.RequestAborted);
+            _log.LogInformation("SYNTH metadata {Entity}", q.EntitySet ?? "(list)");
+            ctx.Response.StatusCode = 200;
+            ctx.Response.ContentType = "application/xml;odata.metadata=minimal;charset=utf-8";
+            await ctx.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(xml), ctx.RequestAborted);
+        }
+        catch (UnresolvedMappingException e)
+        {
+            _log.LogWarning("FAIL {Entity}: {Msg}", e.Entity, e.Message);
+            await WriteJsonAsync(ctx, 502, e.ToJson());
+        }
+        catch (EntitySetNotFoundException)
+        {
+            await WriteJsonAsync(ctx, 404, ErrorJson("Entity set not found"));
+        }
+        catch (UpstreamStatusException e)
+        {
+            await WriteJsonAsync(ctx, e.Status, e.Body.Length > 0 ? e.Body : ErrorJson("Service Layer metadata request failed"));
+        }
+        catch (Exception e) when (e is CompanyDatabaseException or NotSupportedException)
+        {
+            _log.LogError("Company database problem: {Msg}", e.Message);
+            await WriteJsonAsync(ctx, 502, ErrorJson("b1-mcp-compat: SQL access to the company database is required and failed: " + e.Message));
+        }
+    }
+
+    // ------------------------------------------------------------ personal data
+
+    private async Task ServePersonalAsync(HttpContext ctx)
+    {
+        var body = await ReadBodyAsync(ctx);
+        if (!_o.SimulateLegacy)
+        {
+            using var r = await SendAsync(ctx, HttpMethod.Post, ctx.Request.Path.Value + ctx.Request.QueryString, body, Accept: null);
+            // 400/404 = the upstream does not know the service (older Service Layer). Everything else (incl. 401) is passed on as is.
+            if ((int)r.StatusCode is not (400 or 404))
+            {
+                await CopyResponseAsync(ctx, r, body);
+                return;
+            }
+            _log.LogInformation("Upstream has no PersonalFieldsSetupsService ({Status}): served from OPFS", (int)r.StatusCode);
+        }
+        else if (!_sessions.Knows(SessionOf(ctx)))
+        {
+            await WriteJsonAsync(ctx, 401, ErrorJson("Invalid session."));
+            return;
+        }
+
+        string table;
+        try { table = JsonDocument.Parse(body).RootElement.GetProperty("PersonalFieldsSetupTableParams").GetProperty("TableName").GetString() ?? ""; }
+        catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException)
+        {
+            await WriteJsonAsync(ctx, 400, ErrorJson("Invalid request body: expected {\"PersonalFieldsSetupTableParams\":{\"TableName\":\"...\"}}"));
+            return;
+        }
+        var company = CompanyOf(ctx);
+        if (company == null)
+        {
+            await WriteJsonAsync(ctx, 502, ErrorJson("b1-mcp-compat: the company database of this session is unknown. Log in through the connector."));
+            return;
+        }
+        try
+        {
+            var rows = await _personal.GetAsync(company, () => _db.LoadPersonalFieldsAsync(company, ctx.RequestAborted));
+            var json = PersonalFieldMapper.ToJson(rows, table, $"{ctx.Request.Scheme}://{ctx.Request.Host}", _kb.Personal.GetValueOrDefault(table));
+            _log.LogInformation("SYNTH personal fields {Table}", table);
+            ctx.Response.StatusCode = 200;
+            ctx.Response.ContentType = "application/json;odata.metadata=minimal;charset=utf-8";
+            await ctx.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(json), ctx.RequestAborted);
+        }
+        catch (Exception e) when (e is CompanyDatabaseException or NotSupportedException)
+        {
+            _log.LogError("Personal data classification unavailable: {Msg}", e.Message);
+            await WriteJsonAsync(ctx, 502, ErrorJson("b1-mcp-compat: personal data classification (OPFS) is required and failed: " + e.Message));
+        }
+    }
+
+    // ------------------------------------------------------------ pass through
+
+    private static async Task<byte[]> ReadBodyAsync(HttpContext ctx)
+    {
+        using var ms = new MemoryStream();
+        await ctx.Request.Body.CopyToAsync(ms, ctx.RequestAborted);
+        return ms.ToArray();
+    }
+
+    private async Task ForwardAsync(HttpContext ctx, byte[]? bufferedBody)
+    {
+        var req = ctx.Request;
+        var isLogin = HttpMethods.IsPost(req.Method) && LoginPath().IsMatch(req.Path.Value ?? "");
+        if (isLogin) bufferedBody ??= await ReadBodyAsync(ctx);
+        var pathAndQuery = req.Path.ToUriComponent() + req.QueryString;
+        using var r = await SendAsync(ctx, new HttpMethod(req.Method), pathAndQuery, bufferedBody, Accept: null, streamBody: bufferedBody == null);
+        _log.LogInformation("-> {Method} {Path} {Status}", req.Method, req.Path.Value, (int)r.StatusCode);
+        await CopyResponseAsync(ctx, r, bufferedBody, isLogin);
+    }
+
+    /// <summary>What an SL older than FP2608 does: the annotated-metadata options are silently ignored (observed with /b1s/v1 on a 2608).</summary>
+    private string ToUpstream(string pathAndQuery)
+    {
+        if (!_o.SimulateLegacy) return pathAndQuery;
+        var qi = pathAndQuery.IndexOf('?');
+        var p = qi < 0 ? pathAndQuery : pathAndQuery[..qi];
+        if (!MetadataPath().IsMatch(p) || qi < 0) return pathAndQuery;
+        var kept = pathAndQuery[(qi + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Where(kv => Uri.UnescapeDataString(kv.Split('=')[0]) is not ("scope" or "annotation" or "entityset" or "dependency"));
+        var rest = string.Join('&', kept);
+        return rest.Length == 0 ? p : p + "?" + rest;
+    }
+
+    private Task<HttpResponseMessage> SendAsync(HttpContext ctx, HttpMethod method, string pathAndQuery, byte[]? body, string? Accept, bool streamBody = false)
+    {
+        var msg = new HttpRequestMessage(method, _upstream + ToUpstream(pathAndQuery));
+        HttpContent? content = null;
+        if (body is { Length: > 0 }) content = new ByteArrayContent(body);
+        else if (streamBody && (ctx.Request.ContentLength > 0 || ctx.Request.Headers.ContainsKey("Transfer-Encoding")))
+        {
+            content = new StreamContent(ctx.Request.Body);
+            if (ctx.Request.ContentLength is { } len) content.Headers.ContentLength = len;
+        }
+        foreach (var h in ctx.Request.Headers)
+        {
+            if (SkipRequestHeaders.Contains(h.Key)) continue;
+            if (Accept != null && h.Key.Equals("Accept", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!msg.Headers.TryAddWithoutValidation(h.Key, (IEnumerable<string>)h.Value) && content != null)
+                content.Headers.TryAddWithoutValidation(h.Key, (IEnumerable<string>)h.Value);
+        }
+        if (Accept != null) msg.Headers.TryAddWithoutValidation("Accept", Accept);
+        msg.Content = content;
+        return _http.SendAsync(msg, HttpCompletionOption.ResponseHeadersRead, ctx.RequestAborted);
+    }
+
+    private async Task CopyResponseAsync(HttpContext ctx, HttpResponseMessage r, byte[]? requestBody, bool isLogin = false)
+    {
+        var res = ctx.Response;
+        res.StatusCode = (int)r.StatusCode;
+        foreach (var h in r.Headers.Concat(r.Content.Headers))
+            if (!SkipResponseHeaders.Contains(h.Key)) res.Headers[h.Key] = h.Value.ToArray();
+        var plain = !ctx.Request.IsHttps;
+        if (r.Headers.TryGetValues("Set-Cookie", out var cookies))
+        {
+            foreach (var c in cookies)
+                res.Headers.Append("Set-Cookie", plain ? SameSiteNone().Replace(SecureAttr().Replace(c, ""), "") : c);
+        }
+        var type = r.Content.Headers.ContentType?.MediaType ?? "";
+        if (type.Contains("json", StringComparison.OrdinalIgnoreCase) || isLogin)
+        {
+            var text = await r.Content.ReadAsStringAsync(ctx.RequestAborted);
+            if (isLogin && r.IsSuccessStatusCode) CaptureLogin(requestBody, text);
+            var self = $"{ctx.Request.Scheme}://{ctx.Request.Host}";
+            var outText = text.Replace(_upstream, self, StringComparison.Ordinal);
+            await res.Body.WriteAsync(Encoding.UTF8.GetBytes(outText), ctx.RequestAborted);
+            return;
+        }
+        if (r.Content.Headers.ContentLength is { } l) res.ContentLength = l;
+        await r.Content.CopyToAsync(res.Body, ctx.RequestAborted);
+    }
+
+    private void CaptureLogin(byte[]? requestBody, string responseText)
+    {
+        try
+        {
+            var db = JsonDocument.Parse(requestBody ?? Array.Empty<byte>()).RootElement.GetProperty("CompanyDB").GetString();
+            var sid = JsonDocument.Parse(responseText).RootElement.GetProperty("SessionId").GetString();
+            if (!string.IsNullOrEmpty(db) && !string.IsNullOrEmpty(sid)) _sessions.Add(sid, db);
+        }
+        catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException) { /* not a direct Login body */ }
+    }
+
+    // ------------------------------------------------------------ helpers
+
+    private static string ErrorJson(string message) =>
+        JsonSerializer.Serialize(new { error = new { code = -1, message = new { lang = "en-us", value = message } } });
+
+    private static async Task WriteJsonAsync(HttpContext ctx, int status, string json)
+    {
+        ctx.Response.StatusCode = status;
+        ctx.Response.ContentType = "application/json;charset=utf-8";
+        await ctx.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(json));
+    }
+
+    private sealed class UpstreamStatusException : Exception
+    {
+        public int Status { get; }
+        public string Body { get; }
+
+        public UpstreamStatusException(int status, string body) : base($"Service Layer answered {status}")
+        {
+            Status = status;
+            Body = body;
+        }
+    }
+}
