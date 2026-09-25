@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\B1.Mcp.Compat.Core\B1.Mcp.Compat.Core.csproj" />
+    <ProjectReference Include="..\B1.Mcp.Compat.Data\B1.Mcp.Compat.Data.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Embedded knowledge base, produced by the gen-kb command (see README). -->
+    <EmbeddedResource Include="Resources\kb.json.gz" LogicalName="kb.json.gz" Condition="Exists('Resources\kb.json.gz')" />
+  </ItemGroup>
+
+</Project>
