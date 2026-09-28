@@ -29,3 +29,9 @@ Thumbs.db
 /.agents/
 /.sbo-skills/
 /skills-lock.json
+
+# SAP's MCP server (or the partner's variant): each clone supplies its own, see README
+/b1-mcp-server/
+
+# Dev profiles (encrypted credentials)
+/.dev/
