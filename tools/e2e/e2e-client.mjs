@@ -1,6 +1,5 @@
 ﻿// End-to-end check of the SAP B1 MCP server through b1-mcp-compat. Business data read: one row of Currencies (non-personal).
 //   node e2e-client.mjs http://localhost:3100/mcp report.json
-import { pathToFileURL } from 'node:url';
 import fs from 'node:fs';
 const sdk = new URL('../../b1-mcp-server/node_modules/@modelcontextprotocol/sdk/dist/esm/', import.meta.url);
 const { Client } = await import(new URL('client/index.js', sdk).href);
@@ -18,7 +17,7 @@ try {
   check('MCP handshake', true, JSON.stringify(client.getServerVersion()));
   const tools = (await client.listTools()).tools.map((t) => t.name);
   check('tools listed', ['b1_find_entities', 'b1_get_entity_schema', 'b1_read', 'b1_write'].every((t) => tools.includes(t)), tools.join(', '));
-  const call = async (name, args) => { try { const r = await client.callTool({ name, arguments: args }); return { err: !!r.isError, t: text(r) }; } catch (e) { return { err: true, t: String(e.message) }; } };
+  const call = async (name, args) => { try { const r = await client.callTool({ name, arguments: args }); return { err: !!r.isError, t: text(r), s: r.structuredContent }; } catch (e) { return { err: true, t: String(e.message) }; } };
 
   const f = await call('b1_find_entities', { query: 'Order', limit: 10 });
   check('find_entities "Order" returns Orders', !f.err && /\bOrders\b/.test(f.t));
@@ -40,6 +39,28 @@ try {
   const udName = (ud.t.match(/^\s+- (\S+)\s+\[user-defined/m) || [])[1];
   if (udName) { const us = await call('b1_get_entity_schema', { entityName: udName }); check(`schema user-defined entity ${udName}`, !us.err && /Properties/.test(us.t), us.err ? us.t.slice(0, 200) : ''); }
   else check('user-defined entity (none in this company)', true, 'skipped');
+
+  // every entity set: a property the connector cannot explain fails its entity set alone (ADR 0004)
+  // SAP's stock server caps `limit` at 50; if it rejects a bigger one, sweep by letter and digit instead (may miss entity sets).
+  const namesOf = (r) => r.s?.matches?.map((m) => m.entityName) ?? [];
+  let names = namesOf(await call('b1_find_entities', { category: 'all', limit: 100000 }));
+  if (!names.length) {
+    const found = new Set();
+    for (const q of 'abcdefghijklmnopqrstuvwxyz0123456789') namesOf(await call('b1_find_entities', { category: 'all', query: q, limit: 50 })).forEach((n) => found.add(n));
+    names = [...found];
+    console.log(`       stock MCP server: limit capped at 50, swept ${names.length} entity sets by letter (raise the max in b1-tool-registry.ts for full coverage)`);
+  }
+  const bad = [];
+  let next = 0;
+  await Promise.all(Array.from({ length: 8 }, async () => {
+    while (next < names.length) {
+      const n = names[next++];
+      const r = await call('b1_get_entity_schema', { entityName: n });
+      if (r.err || !/Total Properties/.test(r.t)) bad.push(`${n}: ${r.t.slice(0, 300).replace(/\s+/g, ' ')}`);
+    }
+  }));
+  check(`schema of every entity set (${names.length})`, names.length > 0 && !bad.length, bad.length ? `${bad.length} failed` : '');
+  bad.forEach((b) => console.log(`       ${b}`));
 
   const cur = await call('b1_read', { entityName: 'Currencies', operation: 'read', selectString: 'Code', topNumber: 1 });
   check('read Currencies (top 1)', !cur.err && /SUCCESS/.test(cur.t), cur.err ? cur.t.slice(0, 200) : '');
