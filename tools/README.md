@@ -8,7 +8,7 @@ Everything here is read-only against your SAP Business One installation and need
 | | `01-service-layer.ps1` | idem | Login, `$metadata` (full and the FP2608 scoped variants), personal-data endpoints, `$apply`, `$count`, paging. Only reads document numbers |
 | | `02-database.ps1` | idem | Catalog of `OPFS`, `CUFD`, `OUTB`, `OUDO` (names only). SQL Server; HANA is not covered by this probe |
 | | `03-cross-check.ps1` | offline | Compares what the Service Layer exposes with the database catalog |
-| `e2e/` | `e2e.ps1` | a machine with Node.js 22+ | Runs the vendored SAP MCP server through the connector (`-Exe`, or `dotnet run` from a checkout) against your Service Layer and checks its tools |
+| `e2e/` | `e2e.ps1` | a machine with Node.js 22+ | Runs the SAP MCP server (`b1-mcp-server/`, see the root README) through the connector (`-Exe`, or `dotnet run` from a checkout) against your Service Layer and checks its tools |
 | `parity/` | `run-parity.ps1` | the development server with a native FP2608 | Proves the connector reproduces native FP2608 answers (N/N identical) |
 
 ## Quick start on an old installation (e.g. FP2208)
