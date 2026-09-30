@@ -13,7 +13,7 @@ namespace B1.Mcp.Compat.Host;
 /// gen-kb: builds the knowledge base from a NATIVE FP2608+ Service Layer.
 ///   B1.Mcp.Compat.Host gen-kb [--sl https://host:50000] [--out kb.json.gz] [--merge existing.json.gz] [--company DB] [--no-db]
 /// Credentials come from the environment (B1_COMPANY_DB, B1_USERNAME, B1_PASSWORD), never from the command line.
-/// The company database (appsettings Compat:Database) is read for CUFD/OUTB/OUDO so that user fields, user tables and user
+/// The company database (Compat__Database__* variables) is read for CUFD/OUTB/OUDO so that user fields, user tables and user
 /// objects of that company are EXCLUDED; --no-db drops every U_* property instead (standard U_* columns such as OUSR.U_NAME are then lost).
 /// An existing KB (--merge, default: --out if it exists) is merged: union, newest wins.
 /// </summary>
@@ -22,7 +22,7 @@ public static class GenKbCommand
     public static async Task<int> RunAsync(string[] args)
     {
         string? Opt(string n) { var i = Array.IndexOf(args, "--" + n); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
-        var cfg = new ConfigurationBuilder().SetBasePath(AppContext.BaseDirectory).AddJsonFile("appsettings.json", true).AddEnvironmentVariables().AddCommandLine(args.Where(a => a.Contains('=')).ToArray()).Build();
+        var cfg = new ConfigurationBuilder().AddEnvironmentVariables().AddCommandLine(args.Where(a => a.Contains('=')).ToArray()).Build();
         var o = cfg.GetSection(CompatOptions.Section).Get<CompatOptions>() ?? new CompatOptions();
         var sl = (Opt("sl") ?? o.Upstream.Url).TrimEnd('/');
         var outPath = Opt("out") ?? "kb.json.gz";
