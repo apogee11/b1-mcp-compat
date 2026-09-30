@@ -8,7 +8,6 @@
 *.pfx
 *.p12
 secrets.dat
-appsettings.Local.json
 
 # Build output
 bin/
