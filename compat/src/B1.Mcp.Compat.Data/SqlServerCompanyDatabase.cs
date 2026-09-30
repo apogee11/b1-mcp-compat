@@ -8,9 +8,17 @@ namespace B1.Mcp.Compat.Data;
 /// <summary>SQL Server access to the company database (read only: CUFD, OUTB, OUDO, UDO1, OPFS, INFORMATION_SCHEMA).</summary>
 public sealed partial class SqlServerCompanyDatabase : ICompanyDatabase
 {
-    private readonly string _template;
+    private readonly DatabaseOptions _options;
 
-    public SqlServerCompanyDatabase(DatabaseOptions options) => _template = options.ConnectionString;
+    public SqlServerCompanyDatabase(DatabaseOptions options)
+    {
+        _options = options;
+        if (options.ConnectionString != "" || options.User == "") return;
+        if (options.PasswordFile == "" && options.Password == "")
+            throw new InvalidOperationException("Compat:Database:User is set but there is no password: set Compat:Database:PasswordFile (preferred) or Compat:Database:Password.");
+        if (options.PasswordFile != "" && !File.Exists(options.PasswordFile))
+            throw new InvalidOperationException($"Compat:Database:PasswordFile '{options.PasswordFile}' does not exist.");
+    }
 
     [GeneratedRegex(@"^[A-Za-z0-9_\-\.\$#@ ]{1,128}$")]
     private static partial Regex SafeDbName();
@@ -19,9 +27,27 @@ public sealed partial class SqlServerCompanyDatabase : ICompanyDatabase
     public string ConnectionStringFor(string companyDb)
     {
         if (!SafeDbName().IsMatch(companyDb)) throw new CompanyDatabaseException("Unsupported characters in company database name.");
-        if (_template.Contains("{CompanyDB}", StringComparison.OrdinalIgnoreCase))
-            return _template.Replace("{CompanyDB}", companyDb, StringComparison.OrdinalIgnoreCase);
-        return new SqlConnectionStringBuilder(_template) { InitialCatalog = companyDb }.ConnectionString;
+        var template = _options.ConnectionString;
+        if (template != "")
+        {
+            if (template.Contains("{CompanyDB}", StringComparison.OrdinalIgnoreCase))
+                return template.Replace("{CompanyDB}", companyDb, StringComparison.OrdinalIgnoreCase);
+            return new SqlConnectionStringBuilder(template) { InitialCatalog = companyDb }.ConnectionString;
+        }
+        var b = new SqlConnectionStringBuilder
+        {
+            DataSource = _options.Server,
+            InitialCatalog = companyDb,
+            TrustServerCertificate = _options.TrustServerCertificate,
+            ApplicationName = "b1-mcp-compat",
+        };
+        if (_options.User == "") b.IntegratedSecurity = true;
+        else
+        {
+            b.UserID = _options.User;
+            b.Password = _options.PasswordFile != "" ? File.ReadAllText(_options.PasswordFile).TrimEnd('\r', '\n') : _options.Password;
+        }
+        return b.ConnectionString;
     }
 
     private async Task<SqlConnection> OpenAsync(string companyDb, CancellationToken ct)
