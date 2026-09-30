@@ -35,14 +35,19 @@ B1.Mcp.Compat.Host version
 
 `gen-kb` builds the **knowledge base** from a *native* FP2608+ Service Layer (env `B1_COMPANY_DB`, `B1_USERNAME`, `B1_PASSWORD`). It records only SAP-standard facts: label, table, column, child table and enum values of every standard entity, plus which `OPFS` rows the native personal-data action serves for each table. The company's user fields, tables and objects are excluded using that company's own catalog; the run fails if anything customer-specific slips in. Results merge with an existing file (union, newest wins). The file used at build time is `src/B1.Mcp.Compat.Host/Resources/kb.json.gz`, **embedded in the exe**; `KnowledgeBase:OverridePath` replaces it without rebuilding.
 
-## Configuration (`appsettings.json`, section `Compat`; environment `Compat__Section__Key`)
+## Configuration (environment `Compat__Section__Key`; there is no settings file)
 
 | Key | Default | |
 |---|---|---|
 | `Listen` | `https://localhost:50100` | Listener. HTTPS uses a generated self-signed certificate unless `Tls` points to a PFX; `http://…` is allowed on trusted networks |
 | `Upstream:Url` / `SkipTlsVerify` | `https://localhost:50000` / `true` | The Service Layer (Service Layers ship self-signed certificates) |
 | `Database:Provider` | `SqlServer` | `SqlServer` or `Hana` (experimental) |
-| `Database:ConnectionString` | Integrated Security | `{CompanyDB}` is replaced by the `CompanyDB` of the Login that passed through |
+| `Database:Server` | `localhost` | SQL Server host, `host\instance` or `host,port`. The database is the `CompanyDB` of the Login that passed through |
+| `Database:User` | empty | SQL login. Empty means Windows authentication (the account the process runs as) |
+| `Database:PasswordFile` | empty | File with the SQL password, read on every new connection (rotation without restart). Wins over `Database:Password` |
+| `Database:Password` | empty | SQL password. Prefer `PasswordFile` |
+| `Database:TrustServerCertificate` | `true` | |
+| `Database:ConnectionString` | empty | Advanced: a full connection string that replaces the five settings above. `{CompanyDB}` is replaced by the `CompanyDB` of the Login |
 | `KnowledgeBase:OverridePath` | empty | Optional knowledge base file |
 | `Mappings:OverridePath` | `mappings.override.json` | Manual mappings for things the connector cannot resolve |
 | `SimulateLegacy` | `false` | Test only: hide the native FP2608 features of the upstream |
