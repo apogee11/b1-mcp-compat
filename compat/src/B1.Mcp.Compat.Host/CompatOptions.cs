@@ -2,7 +2,7 @@ using B1.Mcp.Compat.Core.Config;
 
 namespace B1.Mcp.Compat.Host;
 
-/// <summary>Configuration section "Compat" of appsettings.json (environment variables: Compat__Upstream__Url, ...).</summary>
+/// <summary>Configuration section "Compat", read from environment variables (Compat__Upstream__Url, ...) and command-line arguments. There is no settings file.</summary>
 public sealed class CompatOptions
 {
     public const string Section = "Compat";
