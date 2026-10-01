@@ -5,7 +5,7 @@ using Microsoft.Data.SqlClient;
 
 namespace B1.Mcp.Compat.Data;
 
-/// <summary>SQL Server access to the company database (read only: CUFD, OUTB, OUDO, UDO1, OPFS, INFORMATION_SCHEMA).</summary>
+/// <summary>SQL Server access to the company database (read only: OPFS).</summary>
 public sealed partial class SqlServerCompanyDatabase : ICompanyDatabase
 {
     private readonly DatabaseOptions _options;
@@ -84,39 +84,6 @@ public sealed partial class SqlServerCompanyDatabase : ICompanyDatabase
             throw new CompanyDatabaseException($"SQL query failed (error {e.Number}): {e.Message}", e);
         }
         return rows;
-    }
-
-    public async Task<CompanyCatalog> LoadCatalogAsync(string companyDb, CancellationToken ct)
-    {
-        await using var c = await OpenAsync(companyDb, ct);
-        var cat = new CompanyCatalog();
-
-        foreach (var r in await QueryAsync(c, "SELECT TableID, AliasID, Descr FROM CUFD", 3, ct))
-            cat.AddUdf(S(r[0]), S(r[1]), r[2] as string);
-
-        foreach (var r in await QueryAsync(c, "SELECT TableName, Descr, ObjectType FROM OUTB", 3, ct))
-            cat.UserTables[S(r[0])] = new UserTable(S(r[0]), r[1] as string, Convert.ToInt32(r[2] ?? 0));
-
-        var children = new Dictionary<string, List<UserObjectChild>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var r in await QueryAsync(c, "SELECT Code, TableName, SonName FROM UDO1 ORDER BY Code, SonNum", 3, ct))
-        {
-            var code = S(r[0]);
-            if (!children.TryGetValue(code, out var l)) children[code] = l = new();
-            l.Add(new UserObjectChild(S(r[1]), r[2] as string));
-        }
-        foreach (var r in await QueryAsync(c, "SELECT Code, TableName FROM OUDO", 2, ct))
-        {
-            var code = S(r[0]);
-            cat.UserObjects[code] = new UserObject(code, S(r[1]), children.GetValueOrDefault(code) ?? new List<UserObjectChild>());
-        }
-
-        foreach (var r in await QueryAsync(c, "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME LIKE '[@]%'", 2, ct))
-        {
-            var t = S(r[0]);
-            if (!cat.Columns.TryGetValue(t, out var set)) cat.Columns[t] = set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            set.Add(S(r[1]));
-        }
-        return cat;
     }
 
     public async Task<IReadOnlyList<PersonalFieldRow>> LoadPersonalFieldsAsync(string companyDb, CancellationToken ct)
