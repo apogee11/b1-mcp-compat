@@ -21,13 +21,12 @@ public sealed partial class ProxyEndpoint
     private readonly CompatOptions _o;
     private readonly HttpClient _http;
     private readonly string _upstream;
-    private readonly KnowledgeBase _kb;
-    private readonly MetadataSynthesizer _synth;
+    private readonly Dictionary<string, MetadataSynthesizer> _synths;
     private readonly ICompanyDatabase _db;
     private readonly SessionRegistry _sessions = new();
     private readonly ILogger _log;
     private readonly TtlCache<EdmModel> _models = new(TimeSpan.FromMinutes(10));
-    private readonly TtlCache<CompanyCatalog> _catalogs = new(TimeSpan.FromMinutes(5));
+    private readonly TtlCache<UserCatalog> _catalogs = new(TimeSpan.FromMinutes(5));
     private readonly TtlCache<IReadOnlyList<PersonalFieldRow>> _personal = new(TimeSpan.FromMinutes(5));
     private bool? _native;
 
@@ -37,13 +36,12 @@ public sealed partial class ProxyEndpoint
     private static readonly HashSet<string> SkipResponseHeaders = new(StringComparer.OrdinalIgnoreCase)
         { "content-encoding", "transfer-encoding", "content-length", "set-cookie", "connection", "keep-alive" };
 
-    public ProxyEndpoint(CompatOptions o, HttpClient http, KnowledgeBase kb, MappingOverrides ov, ICompanyDatabase db, ILogger log)
+    public ProxyEndpoint(CompatOptions o, HttpClient http, IReadOnlyDictionary<string, KnowledgeBase> kbs, MappingOverrides ov, ICompanyDatabase db, ILogger log)
     {
         _o = o;
         _http = http;
         _upstream = o.Upstream.Url.TrimEnd('/');
-        _kb = kb;
-        _synth = new MetadataSynthesizer(kb, ov);
+        _synths = kbs.ToDictionary(k => k.Key, k => new MetadataSynthesizer(k.Value, ov));
         _db = db;
         _log = log;
     }
@@ -106,6 +104,12 @@ public sealed partial class ProxyEndpoint
             await WriteJsonAsync(ctx, 502, ErrorJson("b1-mcp-compat: the company database of this session is unknown. Log in through the connector (POST /b1s/v2/Login) so the CompanyDB can be captured."));
             return;
         }
+        var code = _sessions.VersionFor(SessionOf(ctx));
+        if (code == null || !KbLoader.Releases.TryGetValue(code, out var release) || !_synths.TryGetValue(release, out var synth))
+        {
+            await WriteJsonAsync(ctx, 502, ErrorJson($"b1-mcp-compat: no knowledge base for Service Layer version code '{code ?? "unknown"}'. Verified releases: {string.Join(", ", _synths.Keys.Order().Select(k => "FP" + k))}. To add a release, distill its dictionary (see compat/README.md, 'A new installation that is not verified')."));
+            return;
+        }
         try
         {
             var model = await _models.GetAsync(company, async () =>
@@ -114,8 +118,8 @@ public sealed partial class ProxyEndpoint
                 if (!r.IsSuccessStatusCode) throw new UpstreamStatusException((int)r.StatusCode, await r.Content.ReadAsStringAsync(ctx.RequestAborted));
                 return EdmModel.Parse(await r.Content.ReadAsStringAsync(ctx.RequestAborted));
             });
-            var catalog = new LazyCatalog(ct => _catalogs.GetAsync(company, () => _db.LoadCatalogAsync(company, ct)));
-            var xml = await _synth.BuildAsync(q, model, catalog, s => _log.LogWarning("Entity set {Name} skipped from the list: not in the knowledge base and not a user table/object of {Company}", s, company), ctx.RequestAborted);
+            var catalog = new LazyCatalog(ct => _catalogs.GetAsync(company, () => LoadUserCatalogAsync(ctx)));
+            var xml = await synth.BuildAsync(q, model, catalog, s => _log.LogWarning("Entity set {Name} skipped from the list: not in the knowledge base and not a user table/object of {Company}", s, company), ctx.RequestAborted);
             _log.LogInformation("SYNTH metadata {Entity}", q.EntitySet ?? "(list)");
             ctx.Response.StatusCode = 200;
             ctx.Response.ContentType = "application/xml;odata.metadata=minimal;charset=utf-8";
@@ -134,11 +138,34 @@ public sealed partial class ProxyEndpoint
         {
             await WriteJsonAsync(ctx, e.Status, e.Body.Length > 0 ? e.Body : ErrorJson("Service Layer metadata request failed"));
         }
-        catch (Exception e) when (e is CompanyDatabaseException or NotSupportedException)
+    }
+
+    // ------------------------------------------------------------ user-defined objects
+
+    /// <summary>Reads the company's user fields, tables and objects from the Service Layer itself (UserFieldsMD, UserTablesMD, UserObjectsMD) with the caller's session.</summary>
+    private async Task<UserCatalog> LoadUserCatalogAsync(HttpContext ctx)
+    {
+        var fields = await ReadAllAsync(ctx, "UserFieldsMD?$select=Name,TableName,Description");
+        var tables = await ReadAllAsync(ctx, "UserTablesMD?$select=TableName,TableDescription,TableType");
+        var objects = await ReadAllAsync(ctx, "UserObjectsMD");
+        return UserCatalog.Parse(fields, tables, objects);
+    }
+
+    private async Task<List<JsonElement>> ReadAllAsync(HttpContext ctx, string first)
+    {
+        var rows = new List<JsonElement>();
+        for (string? next = "/b1s/v2/" + first; next != null;)
         {
-            _log.LogError("Company database problem: {Msg}", e.Message);
-            await WriteJsonAsync(ctx, 502, ErrorJson("b1-mcp-compat: SQL access to the company database is required and failed: " + e.Message));
+            using var r = await SendAsync(ctx, HttpMethod.Get, next, null, Accept: "application/json");
+            var text = await r.Content.ReadAsStringAsync(ctx.RequestAborted);
+            if (!r.IsSuccessStatusCode) throw new UpstreamStatusException((int)r.StatusCode, text);
+            using var doc = JsonDocument.Parse(text);
+            rows.AddRange(doc.RootElement.GetProperty("value").EnumerateArray().Select(e => e.Clone()));
+            next = doc.RootElement.TryGetProperty("odata.nextLink", out var n) || doc.RootElement.TryGetProperty("@odata.nextLink", out n)
+                ? (n.GetString()!.StartsWith("/b1s/", StringComparison.Ordinal) ? n.GetString() : "/b1s/v2/" + n.GetString())
+                : null;
         }
+        return rows;
     }
 
     // ------------------------------------------------------------ personal data
@@ -179,7 +206,7 @@ public sealed partial class ProxyEndpoint
         try
         {
             var rows = await _personal.GetAsync(company, () => _db.LoadPersonalFieldsAsync(company, ctx.RequestAborted));
-            var json = PersonalFieldMapper.ToJson(rows, table, $"{ctx.Request.Scheme}://{ctx.Request.Host}", _kb.Personal.GetValueOrDefault(table));
+            var json = PersonalFieldMapper.ToJson(rows, table, $"{ctx.Request.Scheme}://{ctx.Request.Host}");
             _log.LogInformation("SYNTH personal fields {Table}", table);
             ctx.Response.StatusCode = 200;
             ctx.Response.ContentType = "application/json;odata.metadata=minimal;charset=utf-8";
@@ -278,8 +305,10 @@ public sealed partial class ProxyEndpoint
         try
         {
             var db = JsonDocument.Parse(requestBody ?? Array.Empty<byte>()).RootElement.GetProperty("CompanyDB").GetString();
-            var sid = JsonDocument.Parse(responseText).RootElement.GetProperty("SessionId").GetString();
-            if (!string.IsNullOrEmpty(db) && !string.IsNullOrEmpty(sid)) _sessions.Add(sid, db);
+            using var answer = JsonDocument.Parse(responseText);
+            var sid = answer.RootElement.GetProperty("SessionId").GetString();
+            var version = answer.RootElement.TryGetProperty("Version", out var v) ? v.GetString() : null;
+            if (!string.IsNullOrEmpty(db) && !string.IsNullOrEmpty(sid)) _sessions.Add(sid, db, version);
         }
         catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException) { /* not a direct Login body */ }
     }

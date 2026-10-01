@@ -12,7 +12,6 @@ public sealed class CompatOptions
 
     public UpstreamOptions Upstream { get; set; } = new();
     public DatabaseOptions Database { get; set; } = new();
-    public KnowledgeBaseOptions KnowledgeBase { get; set; } = new();
     public MappingsOptions Mappings { get; set; } = new();
     public TlsOptions Tls { get; set; } = new();
 
@@ -25,12 +24,6 @@ public sealed class CompatOptions
 
         /// <summary>Service Layers ship self-signed certificates, hence true by default.</summary>
         public bool SkipTlsVerify { get; set; } = true;
-    }
-
-    public sealed class KnowledgeBaseOptions
-    {
-        /// <summary>Optional KB file (.json or .json.gz) merged over the embedded one (the file wins). Default: kb.override.json.gz / kb.override.json next to the exe if present.</summary>
-        public string? OverridePath { get; set; }
     }
 
     public sealed class MappingsOptions

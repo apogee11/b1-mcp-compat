@@ -13,8 +13,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Embedded knowledge base, produced by the gen-kb command (see README). -->
-    <EmbeddedResource Include="Resources\kb.json.gz" LogicalName="kb.json.gz" Condition="Exists('Resources\kb.json.gz')" />
+    <!-- Embedded knowledge base (see README). -->
+    <EmbeddedResource Include="Resources\kb-*.json.gz" LogicalName="%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>
