@@ -5,7 +5,7 @@ namespace B1.Mcp.Compat.Core.Personal;
 
 /// <summary>
 /// Reproduces <c>PersonalFieldsSetupsService_GetPersonalFieldsByTable</c> (FP2608) from the company's OPFS table.
-/// Letter codes were verified against a native FP2608 (780/780 rows).
+/// The rows are those of OPFS selected like the native action does (<see cref="PersonalTableMap"/>); letter codes were verified against a native FP2608 (780/780 rows).
 /// </summary>
 public static class PersonalFieldMapper
 {
@@ -24,16 +24,16 @@ public static class PersonalFieldMapper
     /// <summary>Enum name of an OPFS category letter, as served by the Service Layer.</summary>
     public static string CategoryName(string? letter) => "pfsc_" + (letter != null && Category.TryGetValue(letter.Trim(), out var c) ? c : "None");
 
-    /// <param name="served">"OPFSTable|pfsc_Category" pairs the native action returns for <paramref name="table"/> (from the knowledge base); null = table not known, rows of that exact table are returned.</param>
-    public static string ToJson(IEnumerable<PersonalFieldRow> rows, string table, string contextBaseUrl, IReadOnlyCollection<string>? served)
+    public static string ToJson(IEnumerable<PersonalFieldRow> rows, string table, string contextBaseUrl)
     {
+        var (opfsTable, category) = PersonalTableMap.Resolve(table);
         using var ms = new MemoryStream();
         using (var w = new Utf8JsonWriter(ms, new JsonWriterOptions { Indented = true }))
         {
             w.WriteStartObject();
             w.WriteString("@odata.context", contextBaseUrl.TrimEnd('/') + "/b1s/v2/$metadata#PersonalFieldsSetups");
             w.WriteStartArray("value");
-            foreach (var r in rows.Where(r => served is null ? string.Equals(r.TableName, table, StringComparison.OrdinalIgnoreCase) : served.Contains(r.TableName + "|" + CategoryName(r.Category))).OrderBy(r => r.AbsEntry))
+            foreach (var r in rows.Where(r => string.Equals(r.TableName, opfsTable, StringComparison.OrdinalIgnoreCase) && r.Category?.Trim() == category).OrderBy(r => r.AbsEntry))
             {
                 w.WriteStartObject();
                 w.WriteNumber("AbsEntry", r.AbsEntry);

@@ -1,71 +1,173 @@
 # B1.Mcp.Compat
 
-HTTP connector (.NET 10) that sits between SAP's **b1-mcp-server** and a Service Layer older than 10.0 FP2608 so the MCP server works unmodified. Against an FP2608+ Service Layer it is transparent.
+HTTP connector (.NET 10) that sits between SAP's **b1-mcp-server** and a Service Layer older than 10.0 FP2608, so the MCP server works unmodified. Against an FP2608+ Service Layer it is transparent.
 
+```mermaid
+flowchart LR
+    M[b1-mcp-server] -- HTTP --> H[B1.Mcp.Compat.Host]
+    H -- "HTTPS, everything else<br/>passes through" --> S[(Service Layer)]
+    H -. "UserFieldsMD, UserTablesMD,<br/>UserObjectsMD (caller's session)" .-> S
+    H -. "SELECT on OPFS only" .-> D[(Company database)]
+    K[[Knowledge base<br/>one file per version,<br/>embedded in the exe]] --> H
 ```
-MCP server ──HTTP──> B1.Mcp.Compat.Host ──HTTPS──> Service Layer
-                          └── SQL (read only) ──> company database
-```
+
+> [!NOTE]
+> The per-version knowledge base is being finished. Until then the exe embeds a single `kb.json.gz` (captured from an FP2608 Service Layer) and does not choose by version. Sections marked **(target)** describe the design this project is moving to; the decision is in ADR 0010.
 
 ## What it answers on behalf of the old Service Layer
 
-| Request | How |
+| Request | Source of the answer |
 |---|---|
-| `GET /b1s/v2/$metadata?scope=entityset&annotation=…` | The Service Layer's own plain `$metadata` plus annotations: **standard** objects from the embedded knowledge base; **customer-defined** ones (user fields, user tables, user objects) from the company database catalog (`CUFD`, `OUTB`, `OUDO`) |
-| `POST /b1s/v2/PersonalFieldsSetupsService_GetPersonalFieldsByTable` | Rows of the company's `OPFS`, filtered like the native action (see below) |
+| `GET /b1s/v2/$metadata?scope=entityset&annotation=…` | The Service Layer's own plain `$metadata`, plus annotations. **Standard** objects: the knowledge base. **Customer-defined** ones (user fields, user tables, user objects): the Service Layer's `UserFieldsMD`, `UserTablesMD` and `UserObjectsMD`, read with the caller's session |
+| `POST /b1s/v2/PersonalFieldsSetupsService_GetPersonalFieldsByTable` | The company's `OPFS` table, selected exactly like the native action (see [Personal data](#personal-data)) |
 | Anything else | Passed through untouched (cookies, bodies, status) |
 
-If an entity set cannot be explained (a property in neither the knowledge base nor the catalog) that entity set fails alone with HTTP 502 naming the property and how to add it to `mappings.override.json`. Nothing is guessed ([ADR 0004](../docs/adr/0004-unresolved-mappings-always-fail.md)).
+If a property cannot be explained (it is in neither the knowledge base nor the user catalog), that entity set alone fails with HTTP 502 naming the property and the line to add to `mappings.override.json`. Nothing is guessed ([ADR 0004](../docs/adr/0004-unresolved-mappings-always-fail.md)).
+
+## The standard dictionary
+
+The part of the annotation that is SAP-standard (what is behind `BusinessPartners.CardCode`: label "BP Code", table `OCRD`, column `CardCode`) is not asked from any system at run time. It is a **knowledge base**: a JSON file, one per Service Layer version, generated beforehand and embedded in the exe.
+
+### Where it comes from
+
+Data comes from per-build compatibility profiles produced by distillation. A version is *verified* when its profile was checked against that exact build.
+
+## Where the knowledge lives
+
+| What | Where | Changes when |
+|---|---|---|
+| SAP-standard dictionary: labels, tables, columns, child tables, enum values | `src/B1.Mcp.Compat.Host/Resources/kb-<version>.json.gz`, embedded in the exe **(target; today `kb.json.gz`)** | A new Service Layer version is added |
+| Table the native personal-data action asks `OPFS` for | `src/B1.Mcp.Compat.Core/Personal/pf-table-map.json`, embedded | Never within a version (997 exceptions; every other table maps to itself with category `N`) |
+| Manual fixes for one installation | `mappings.override.json` next to the exe | An administrator resolves a 502 |
+| User fields, tables, objects; personal-data rows | Read at run time from the Service Layer and from `OPFS`; cached 5 minutes per company | Never stored |
+
+The knowledge base never contains anything a customer defined. What it is made of and why it is not read at run time is explained in [The standard dictionary](#the-standard-dictionary).
+
+### Supported versions
+
+A version is **verified** only when its dictionary was distilled from that build and the result was checked. The Service Layer states its version in the `Login` answer (`Version`): `1000200` is FP2208, `1000260` is FP2408, `1000340` is FP2608. **(target)** The connector picks the knowledge base of that version; for any other number it answers the metadata request with a clear error instead of a wrong annotation. Personal-data and user-defined handling does not depend on the version.
+
+### A new installation that is not verified
+
+For a version or a patch level without a knowledge base (or when a 502 shows properties the dictionary lacks):
+
+1. **Check the Service Layer** gives the connector what it needs. From any Windows machine that reaches it:
+   ```powershell
+   cd tools\collect
+   $env:B1_PASSWORD = '<Service Layer password>'
+   .\check-upstream.ps1 -SlUrl https://SLSERVER:50000 -Company YOURCOMPANYDB -User manager -Tag 2502 -SqlServer SQLSERVER -SqlUser sa
+   ```
+   It must end in `READY`: `UserFieldsMD`, `UserTablesMD` and `UserObjectsMD` readable, their `U_*` fields equal to the plain `$metadata`, and (with `-SqlServer`) `OPFS` readable. Note the version code of the `Login` it prints.
+2. **Distill the build** on the maintainer side (maintainer tooling, not in this repository). Add the resulting `kb-<version>.json.gz` to `src/B1.Mcp.Compat.Host/Resources/` and rebuild.
+3. **Prove it.** On a machine with that Service Layer, run `tools/e2e/e2e.ps1`: it asks the MCP server for the schema of every entity set and lists those that fail. Fix each by adding the missing line to `mappings.override.json`, or, if the dictionary itself is wrong, fix the extractor, not the file.
+4. Only then record the version as verified in the root README.
+
+## Personal data
+
+The native action never returns `OPFS` rows by the table you ask for. For a requested table `T` it runs `SELECT … FROM OPFS WHERE TableName = <abstract table> AND Category = <category>`:
+
+| Requested table | Abstract table | Category |
+|---|---|---|
+| Any other (e.g. `OCRD`) | itself | `N` |
+| Sales documents and their lines (`ORDR`, `OINV`, `ODLN`…) | `ODOC`, `DOC1`..`DOC28` | `R` |
+| Purchasing documents (`OPOR`, `OPCH`…) | `ODOC`, `DOC1`..`DOC28` | `P` |
+| `OPRQ` / stock transfers `OWTQ`, `OWTR` | `ODOC`, `DOC1`..`DOC28` | `Q` / `A` |
+| Incoming / outgoing payments (`ORCT` / `OVPM`) | `OPMN`, `PMN1`..`PMN9` | `H` / `I` |
+| Tax invoices | `OTXI`, `TXI1`..`TXI4` | `J` / `K` |
+| Opportunities, equipment cards, landed costs, payment results | their own | `C`, `E`, `L`, `X` |
+
+This was observed on an FP2608 by capturing the engine's own SQL for all 3053 dictionary tables, and reproduces the native rows exactly in all of them. The categories `B D F G M O S U Y` are never queried, so their rows are never returned (for `OCRD`, 93 of its 95 `OPFS` rows). Row order is not fixed natively (it varies between Service Layer nodes), so do not depend on it.
 
 ## Projects
 
 | Project | Role |
 |---|---|
-| `B1.Mcp.Compat.Core` | Model, knowledge base, metadata synthesis, personal-data mapping. No I/O |
-| `B1.Mcp.Compat.Data` | Company database access: SQL Server (Microsoft.Data.SqlClient); SAP HANA is an **experimental, untested stub** |
-| `B1.Mcp.Compat.Host` | Proxy, configuration, commands |
+| `B1.Mcp.Compat.Core` | Model and decisions, no I/O: `Kb/` knowledge base, `Catalog/` user catalog and system columns, `Metadata/` synthesis, `Personal/` OPFS mapping, `Mappings/` overrides, `Edm/` model parser |
+| `B1.Mcp.Compat.Data` | Reads `OPFS`: SQL Server (Microsoft.Data.SqlClient). SAP HANA is an **experimental, untested stub** |
+| `B1.Mcp.Compat.Host` | Kestrel proxy, configuration, logging; `ProxyEndpoint` routes the three request kinds |
 
-## Commands
+## How a metadata request is resolved
 
-```
-B1.Mcp.Compat.Host [serve]                  run the proxy (default)
-B1.Mcp.Compat.Host gen-kb [--sl URL] [--out kb.json.gz] [--merge existing.json.gz] [--company DB]
-B1.Mcp.Compat.Host version
-```
+`MetadataSynthesizer` starts from the plain `$metadata` of the Service Layer and, for each property of the requested entity, takes the first match (there is no guessing):
 
-`gen-kb` builds the **knowledge base** from a *native* FP2608+ Service Layer (env `B1_COMPANY_DB`, `B1_USERNAME`, `B1_PASSWORD`). It records only SAP-standard facts: label, table, column, child table and enum values of every standard entity, plus which `OPFS` rows the native personal-data action serves for each table. The company's user fields, tables and objects are excluded using that company's own catalog; the run fails if anything customer-specific slips in. Results merge with an existing file (union, newest wins). The file used at build time is `src/B1.Mcp.Compat.Host/Resources/kb.json.gz`, **embedded in the exe**; `KnowledgeBase:OverridePath` replaces it without rebuilding.
+1. `mappings.override.json`
+2. The knowledge base (a `null` fact means "exists but the native Service Layer does not annotate it", so the property is left out like the native one does)
+3. A user field of a standard table: `(table, U_alias)` in `UserFieldsMD`
+4. A user table or object: a system column of the table type (`Code`, `Name`, `DocEntry`, `LineId`…, see `SystemColumns`) or one of its user fields; child tables of a user object come from `UserObjectMD_ChildTables`
 
-## Configuration (environment `Compat__Section__Key`; there is no settings file)
+Anything else makes that entity set fail with `UnresolvedMappingException`. The result mirrors the native FP2608 response: for the same entity set the annotations are identical, only the XML ordering differs.
+
+Other behaviours worth knowing:
+
+- **Company:** the connector learns which company a session belongs to from the `CompanyDB` of the `POST /Login` that passes through, so clients must log in through it (direct login only; OAuth/Keycloak is not supported).
+- **Caches:** plain `$metadata` 10 min, user catalog 5 min and `OPFS` 5 min, per company. Failures are never cached.
+- **Native upstream:** if the Service Layer already answers the annotated `$metadata`, the connector passes everything through (detected once).
+- **Complex or collection properties without a table mapping** are omitted, as the native `$metadata` does.
+
+## Configuration
+
+Environment variables `Compat__Section__Key`; there is no settings file. Every key has a default.
 
 | Key | Default | |
 |---|---|---|
 | `Listen` | `https://localhost:50100` | Listener. HTTPS uses a generated self-signed certificate unless `Tls` points to a PFX; `http://…` is allowed on trusted networks |
-| `Upstream:Url` / `SkipTlsVerify` | `https://localhost:50000` / `true` | The Service Layer (Service Layers ship self-signed certificates) |
+| `Upstream:Url` / `SkipTlsVerify` | `https://localhost:50000` / `true` | The Service Layer (they ship self-signed certificates) |
 | `Database:Provider` | `SqlServer` | `SqlServer` or `Hana` (experimental) |
-| `Database:Server` | `localhost` | SQL Server host, `host\instance` or `host,port`. The database is the `CompanyDB` of the Login that passed through |
+| `Database:Server` | `localhost` | `host`, `host\instance` or `host,port`. The database is the `CompanyDB` of the Login |
 | `Database:User` | empty | SQL login. Empty means Windows authentication (the account the process runs as) |
 | `Database:PasswordFile` | empty | File with the SQL password, read on every new connection (rotation without restart). Wins over `Database:Password` |
 | `Database:Password` | empty | SQL password. Prefer `PasswordFile` |
 | `Database:TrustServerCertificate` | `true` | |
-| `Database:ConnectionString` | empty | Advanced: a full connection string that replaces the five settings above. `{CompanyDB}` is replaced by the `CompanyDB` of the Login |
-| `KnowledgeBase:OverridePath` | empty | Optional knowledge base file |
-| `Mappings:OverridePath` | `mappings.override.json` | Manual mappings for things the connector cannot resolve |
-| `SimulateLegacy` | `false` | Test only: hide the native FP2608 features of the upstream |
+| `Database:ConnectionString` | empty | Advanced: a full connection string replacing the five settings above; `{CompanyDB}` is replaced by the Login's company |
+| `Mappings:OverridePath` | `mappings.override.json` | Manual mappings (see below) |
+| `SimulateLegacy` | `false` | Test only: hide the native FP2608 features of the upstream, to check the connector against a native Service Layer |
 
-Direct login mode only (`POST /b1s/v2/Login` with `CompanyDB`); OAuth/Keycloak is not supported.
+`mappings.override.json`:
 
-## Build and test
+```json
+{ "mappings": [
+    { "entity": "Orders", "property": "SomeField", "table": "ORDR", "column": "SomeCol", "label": "Optional" },
+    { "entity": "SomeEntity", "table": "OXYZ", "label": "Optional entity label" } ],
+  "enums": [ { "enum": "BoSomeEnum", "member": "bo_X", "value": "X" } ] }
+```
+
+The 502 error prints the exact line to paste.
+
+## Command line
 
 ```
+B1.Mcp.Compat.Host [serve]     run the proxy (default)
+B1.Mcp.Compat.Host version     version and the embedded knowledge base
+```
+
+## Develop
+
+Requirements: .NET 10 SDK, Node.js 22+ for the tests that run the MCP server, PowerShell 5.1+.
+
+```powershell
 dotnet build compat -c Release
-dotnet publish compat/src/B1.Mcp.Compat.Host -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o compat/publish
-tools/parity/run-parity.ps1     # needs a native FP2608 Service Layer: native vs connector, must print N/N identical
-tools/e2e/e2e.ps1 ...           # on any installation: MCP server through the connector
+dotnet publish compat\src\B1.Mcp.Compat.Host -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o compat\publish
 ```
 
-## Rules learned from real systems (see `docs/findings.es.md`)
+| To | Run |
+|---|---|
+| Run connector and MCP server from source, with reload | `tools\dev\setup.ps1` once (saves a DPAPI-encrypted profile in `.dev\`), then `tools\dev\dev.ps1 [-SimulateLegacy]` |
+| Compare against a native FP2608 | `tools\parity\run-parity.ps1`: MCP server → connector (simulating legacy) vs MCP server → native; the calls must be identical |
+| Check every entity set on any installation | `tools\e2e\e2e.ps1 -SlUrl … -Company … -User … -Exe compat\publish\B1.Mcp.Compat.Host.exe` |
+| Check a Service Layer before connecting it | `tools\collect\check-upstream.ps1` |
 
-- Customer objects come from the catalog, never from the `U_` prefix: some system columns also start with `U_`.
-- `OUTB.ObjectType` 0 and 5 are the user tables exposed as `U_<TableName>`; 1 to 4 belong to user objects.
-- The by-table personal-data action does not return `OPFS` rows by table name: `ORDR` returns the sales rows of `ODOC`. That mapping is learned from a native Service Layer into the knowledge base.
-- The native scoped `$metadata` omits complex or collection properties that have no table mapping; the connector does the same.
+The most useful regression test is a native FP2608 with `SimulateLegacy=true`: the connector then has to reproduce, from the knowledge base and the user catalog, what the native Service Layer says.
+
+### Known gaps
+
+- `SBOUDT`, a user table defined by SAP with columns that have no `U_` prefix, is not resolved unless the dictionary or an override covers it.
+- Versions without a knowledge base (see above).
+- SAP HANA and OAuth/Keycloak are not implemented.
+
+### Gotchas learned on real systems
+
+- The Service Layer rejects requests carrying `Expect: 100-continue` with a misleading "Invalid login credential"; the scripts disable it.
+- .NET's cookie container drops cookies for dot-less host names (`WIN-SERVER01`), so the scripts carry the session cookie by hand.
+- Old Windows defaults to TLS 1.0; the scripts force TLS 1.2.
+- Fields starting with `U_` are not reliably customer-defined (some system columns also start with `U_`): customer objects always come from the user catalog.
+- `UserTablesMD.TableType` `bott_NoObject` and `bott_NoObjectAutoIncrement` are the user tables exposed as `U_<TableName>`; the other types belong to user objects.

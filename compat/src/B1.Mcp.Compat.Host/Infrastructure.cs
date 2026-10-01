@@ -31,61 +31,50 @@ public sealed class TtlCache<T>
 public sealed class SessionRegistry
 {
     private readonly ConcurrentDictionary<string, string> _db = new();
+    private readonly ConcurrentDictionary<string, string> _version = new();
     private readonly ConcurrentQueue<string> _order = new();
     private volatile string? _last;
+    private volatile string? _lastVersion;
 
     public string? Last => _last;
 
-    public void Add(string sessionId, string companyDb)
+    public void Add(string sessionId, string companyDb, string? version)
     {
         _last = companyDb;
+        if (!string.IsNullOrEmpty(version)) { _version[sessionId] = version; _lastVersion = version; }
         if (_db.TryAdd(sessionId, companyDb)) _order.Enqueue(sessionId);
         else _db[sessionId] = companyDb;
-        while (_db.Count > 5000 && _order.TryDequeue(out var old)) _db.TryRemove(old, out _);
+        while (_db.Count > 5000 && _order.TryDequeue(out var old)) { _db.TryRemove(old, out _); _version.TryRemove(old, out _); }
     }
 
     public bool Knows(string? sessionId) => sessionId != null && _db.ContainsKey(sessionId);
 
     /// <summary>Company of the session; falls back to the company of the last login.</summary>
     public string? CompanyFor(string? sessionId) => sessionId != null && _db.TryGetValue(sessionId, out var d) ? d : _last;
+
+    /// <summary>Service Layer version code of the session (the "Version" of the Login answer, e.g. 1000260); falls back to the last login.</summary>
+    public string? VersionFor(string? sessionId) => sessionId != null && _version.TryGetValue(sessionId, out var v) ? v : _lastVersion;
 }
 
-/// <summary>Loads the knowledge base: embedded resource plus optional override file merged over it (the file wins).</summary>
+/// <summary>Loads the knowledge bases embedded in the exe, one per Service Layer version (kb-2208.json.gz, ...).</summary>
 public static class KbLoader
 {
-    public static KnowledgeBase Load(CompatOptions o, ILogger log)
+    /// <summary>Version code of the Login answer to the release whose knowledge base serves it. Only verified releases are listed (ADR 0010).</summary>
+    public static readonly IReadOnlyDictionary<string, string> Releases = new Dictionary<string, string> { ["1000200"] = "2208", ["1000260"] = "2408", ["1000340"] = "2608" };
+
+    /// <summary>Release (e.g. "2408") to its knowledge base.</summary>
+    public static Dictionary<string, KnowledgeBase> Load(ILogger log)
     {
-        var kb = new KnowledgeBase();
+        var all = new Dictionary<string, KnowledgeBase>();
         var asm = typeof(KbLoader).Assembly;
-        using (var s = asm.GetManifestResourceStream("kb.json.gz"))
+        foreach (var name in asm.GetManifestResourceNames().Where(n => n.StartsWith("kb-", StringComparison.Ordinal) && n.EndsWith(".json.gz", StringComparison.Ordinal)))
         {
-            if (s != null) { using var gz = new GZipStream(s, CompressionMode.Decompress); kb = KnowledgeBase.Load(gz); }
-            else log.LogWarning("No embedded knowledge base in this build: run 'gen-kb' and rebuild, or provide KnowledgeBase:OverridePath.");
+            using var s = asm.GetManifestResourceStream(name)!;
+            using var gz = new GZipStream(s, CompressionMode.Decompress);
+            all[name["kb-".Length..^".json.gz".Length]] = KnowledgeBase.Load(gz);
         }
-        var candidates = new List<string>();
-        if (!string.IsNullOrWhiteSpace(o.KnowledgeBase.OverridePath)) candidates.Add(CompatOptions.Resolve(o.KnowledgeBase.OverridePath));
-        else { candidates.Add(CompatOptions.Resolve("kb.override.json.gz")); candidates.Add(CompatOptions.Resolve("kb.override.json")); }
-        foreach (var p in candidates.Where(File.Exists))
-        {
-            kb.MergeFrom(ReadFile(p));
-            log.LogInformation("Knowledge base override merged from {Path}", p);
-            break;
-        }
-        return kb;
-    }
-
-    public static KnowledgeBase ReadFile(string path)
-    {
-        using var f = File.OpenRead(path);
-        if (path.EndsWith(".gz", StringComparison.OrdinalIgnoreCase)) { using var gz = new GZipStream(f, CompressionMode.Decompress); return KnowledgeBase.Load(gz); }
-        return KnowledgeBase.Load(f);
-    }
-
-    public static void WriteFile(KnowledgeBase kb, string path)
-    {
-        using var f = File.Create(path);
-        if (path.EndsWith(".gz", StringComparison.OrdinalIgnoreCase)) { using var gz = new GZipStream(f, CompressionLevel.SmallestSize); kb.Save(gz); }
-        else kb.Save(f);
+        if (all.Count == 0) log.LogWarning("No embedded knowledge base in this build: standard entity sets cannot be annotated.");
+        return all;
     }
 
     public static MappingOverrides LoadMappings(CompatOptions o, ILogger log)

@@ -1,5 +1,7 @@
 # Read access to the company database is a requirement
 
+> Superseded by [ADR 0009](0009-user-objects-from-the-service-layer-database-only-for-opfs.md).
+
 The personal-data classification and every customer-defined object live only in the company database, and the Service Layer of older versions does not expose them. Instead of degrading when the database is unreachable, the connector requires it. SQL Server is supported; SAP HANA is built behind the same interface and labelled experimental because it will not be tested yet. The connector and the Service Layer may run on different servers, so database settings are separate from the upstream URL.
 
 ## Consequences
