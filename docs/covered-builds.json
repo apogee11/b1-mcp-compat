@@ -1,0 +1,74 @@
+{
+  "builds": [
+    {
+      "release": "FP2208",
+      "files": [
+        {
+          "name": "OBServerDLL.dll",
+          "fileVersion": "10.0.200.0",
+          "sha256": "24aeb23de137a97cc8762e5e580fa57998940fc247ed2a5923d7e0f9e627fc29"
+        },
+        {
+          "name": "B1_Engine.dll",
+          "fileVersion": "10.0.200.0",
+          "sha256": "2eb48c85224f993992bf72ce38776e812e4bd4ef70997b6abb5109ed604f18af"
+        },
+        {
+          "name": "B1_EnginesResources.dll",
+          "fileVersion": "10.0.200.0",
+          "sha256": "c15ab35d594de30ac32d559b41054422454ad6f5a9e3696ffa361010b0c71deb"
+        },
+        {
+          "name": "B1_EnginesResources1000200.dll",
+          "fileVersion": "10.0.200.0",
+          "sha256": "c15ab35d594de30ac32d559b41054422454ad6f5a9e3696ffa361010b0c71deb"
+        }
+      ]
+    },
+    {
+      "release": "FP2408",
+      "files": [
+        {
+          "name": "OBServerDLL.dll",
+          "fileVersion": "10.0.260.0",
+          "sha256": "ea80448581ff6024ec9ce29fe99e2df0e987025dfec84fcaeff959bf56b22d99"
+        },
+        {
+          "name": "B1_Engine.dll",
+          "fileVersion": "10.0.260.0",
+          "sha256": "fe6cbe19acb934b0bad4f739e93b8f85baa0c496cb7a9d989dffe990d80876d5"
+        },
+        {
+          "name": "B1_EnginesResources.dll",
+          "fileVersion": "10.0.260.0",
+          "sha256": "b03b314fdd6c3256790424a48802ed3dcbbaacb957c3670c1e81190858a9dbd5"
+        }
+      ]
+    },
+    {
+      "release": "FP2608",
+      "files": [
+        {
+          "name": "OBServerDLL.dll",
+          "fileVersion": "10.0.340.0",
+          "sha256": "d02489c511c7d7486142d02e091628790b5efd84e2684b4281f1de100df60cd2"
+        },
+        {
+          "name": "B1_Engine.dll",
+          "fileVersion": "10.0.340.0",
+          "sha256": "7e3e810900f175fe4a1f136311247c9f4f4a1e9c824c7e3aa582851b0cac7221"
+        },
+        {
+          "name": "B1_EnginesResources.dll",
+          "fileVersion": "10.0.340.0",
+          "sha256": "fe64a1a2b1946b5d7de3b7e89c0e9135bf1d68a3e48f9e1d73adf7369f2fdfba"
+        },
+        {
+          "name": "B1_EnginesResources1000340.dll",
+          "fileVersion": "10.0.340.0",
+          "sha256": "fe64a1a2b1946b5d7de3b7e89c0e9135bf1d68a3e48f9e1d73adf7369f2fdfba"
+        }
+      ]
+    }
+  ]
+}
