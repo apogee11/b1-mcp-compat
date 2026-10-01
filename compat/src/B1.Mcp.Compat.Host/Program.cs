@@ -5,17 +5,16 @@ using B1.Mcp.Compat.Data;
 using B1.Mcp.Compat.Host;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
-// Commands: serve (default) | gen-kb | version.  Seams for later passes: verify (doctor), secrets (DPAPI), service install (WinSW).
+// Commands: serve (default) | version.  Seams for later passes: verify (doctor), secrets (DPAPI), service install (WinSW).
 var command = args.Length > 0 && !args[0].StartsWith('-') && !args[0].Contains('=') ? args[0].ToLowerInvariant() : "serve";
 var rest = command == "serve" && !(args.Length > 0 && args[0].Equals("serve", StringComparison.OrdinalIgnoreCase)) ? args : args.Skip(1).ToArray();
 
 switch (command)
 {
     case "serve": return await Serve(rest);
-    case "gen-kb": return await GenKbCommand.RunAsync(rest);
     case "version": return Version();
     default:
-        Console.Error.WriteLine($"Unknown command '{command}'. Usage: B1.Mcp.Compat.Host [serve|gen-kb|version] [options]");
+        Console.Error.WriteLine($"Unknown command '{command}'. Usage: B1.Mcp.Compat.Host [serve|version] [options]");
         return 2;
 }
 
@@ -23,11 +22,9 @@ static int Version()
 {
     var v = typeof(CompatOptions).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0";
     Console.WriteLine($"b1-mcp-compat {v.Split('+')[0]}");
-    using var s = typeof(CompatOptions).Assembly.GetManifestResourceStream("kb.json.gz");
-    if (s == null) { Console.WriteLine("knowledge base: none embedded"); return 0; }
-    using var gz = new System.IO.Compression.GZipStream(s, System.IO.Compression.CompressionMode.Decompress);
-    var kb = KnowledgeBase.Load(gz);
-    Console.WriteLine($"knowledge base: {kb.Sets.Count} entity sets, {kb.Enums.Count} enums, generated {kb.GeneratedAt:u}");
+    var kbs = KbLoader.Load(Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
+    if (kbs.Count == 0) Console.WriteLine("knowledge base: none embedded");
+    foreach (var (release, kb) in kbs.OrderBy(k => k.Key)) Console.WriteLine($"knowledge base FP{release}: {kb.Sets.Count} entity sets, {kb.Enums.Count} enums, generated {kb.GeneratedAt:u}");
     return 0;
 }
 
@@ -57,12 +54,12 @@ static async Task<int> Serve(string[] args)
     var app = builder.Build();
 
     var log = app.Logger;
-    var kb = KbLoader.Load(options, log);
+    var kbs = KbLoader.Load(log);
     var overrides = KbLoader.LoadMappings(options, log);
     var db = CompanyDatabaseFactory.Create(options.Database);
-    var proxy = new ProxyEndpoint(options, Http.CreateUpstreamClient(options), kb, overrides, db, log);
-    log.LogInformation("b1-mcp-compat on {Listen} -> {Upstream} (db provider {Provider}, kb {Sets} entity sets{Sim})",
-        options.Listen, options.Upstream.Url, options.Database.Provider, kb.Sets.Count, options.SimulateLegacy ? ", SIMULATE LEGACY" : "");
+    var proxy = new ProxyEndpoint(options, Http.CreateUpstreamClient(options), kbs, overrides, db, log);
+    log.LogInformation("b1-mcp-compat on {Listen} -> {Upstream} (db provider {Provider}, knowledge bases {Kbs}{Sim})",
+        options.Listen, options.Upstream.Url, options.Database.Provider, string.Join(", ", kbs.Keys.Order().Select(k => "FP" + k)), options.SimulateLegacy ? ", SIMULATE LEGACY" : "");
     if (listen.Scheme == Uri.UriSchemeHttp) log.LogWarning("Serving plain HTTP. The Service Layer session cookie travels unprotected: use only on a trusted loopback/LAN.");
 
     app.Run(proxy.HandleAsync);
