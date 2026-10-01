@@ -11,12 +11,12 @@ namespace B1.Mcp.Compat.Core.Metadata;
 /// <summary>Lazily loads the company catalog the first time something is not covered by the knowledge base.</summary>
 public sealed class LazyCatalog
 {
-    private readonly Func<CancellationToken, Task<CompanyCatalog>> _load;
-    private Task<CompanyCatalog>? _task;
+    private readonly Func<CancellationToken, Task<UserCatalog>> _load;
+    private Task<UserCatalog>? _task;
 
-    public LazyCatalog(Func<CancellationToken, Task<CompanyCatalog>> load) => _load = load;
+    public LazyCatalog(Func<CancellationToken, Task<UserCatalog>> load) => _load = load;
 
-    public Task<CompanyCatalog> GetAsync(CancellationToken ct) => _task ??= _load(ct);
+    public Task<UserCatalog> GetAsync(CancellationToken ct) => _task ??= _load(ct);
 }
 
 /// <summary>
@@ -27,12 +27,12 @@ public sealed class LazyCatalog
 /// Resolution of each property of an entity (first match wins; there is NO guessing):
 ///  1. mappings.override.json
 ///  2. knowledge base (SAP-standard facts; a null fact = natively not annotated, so the property is omitted like the native SL does)
-///  3. user-defined field: (table, "U_"+alias) exists in CUFD of the company database. Native format: Label = CUFD.Descr,
-///     ColumnName = "U_"+AliasID (the property name), no ChildTableName.
-///  4. properties of user tables (OUTB.ObjectType 0 or 5, entity set "U_"+TableName, table "@"+TableName) and user objects (OUDO, entity set
-///     = OUDO.Code, table "@"+TableName; child tables from UDO1): the property must be a physical column of the table
-///     (INFORMATION_SCHEMA); Label = ColumnName = property name for system columns, Label = CUFD.Descr for U_ columns;
-///     entity label = OUTB.Descr; collection of a UDO line type: Label = OUTB.Descr of the child table, ChildTableName = "@"+child table.
+///  3. user-defined field: (table, "U_"+alias) exists in the Service Layer's UserFieldsMD. Native format: Label = Description,
+///     ColumnName = "U_"+alias (the property name), no ChildTableName.
+///  4. properties of user tables (UserTablesMD no-object types, entity set "U_"+TableName, table "@"+TableName) and user objects (UserObjectsMD,
+///     entity set = Code, table "@"+TableName; child tables from UserObjectMD_ChildTables): the property must be a system column of the
+///     table type or one of its user fields; Label = ColumnName = property name for system columns, Label = description for U_ columns;
+///     entity label = TableDescription; collection of a UDO line type: Label = TableDescription of the child table, ChildTableName = "@"+child table.
 ///  Anything else makes the entity fail (<see cref="UnresolvedMappingException"/>).
 /// </summary>
 public sealed class MetadataSynthesizer
@@ -247,6 +247,9 @@ public sealed class MetadataSynthesizer
         {
             // 2. knowledge base
             if (blob != null && blob.TryGetValue(prop, out var kp)) return kp == null ? (Verdict.Drop, null) : (Verdict.Annotate, kp);
+
+            // A complex or collection property the dictionary does not list has no table behind it: the native $metadata leaves it out.
+            if (structured && blob != null) return (Verdict.Drop, null);
 
             // 3. user-defined field of a standard table
             if (prop.StartsWith("U_", StringComparison.Ordinal) && tables != null)
