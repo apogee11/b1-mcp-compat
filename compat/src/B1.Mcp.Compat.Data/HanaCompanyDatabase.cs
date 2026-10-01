@@ -12,4 +12,6 @@ public sealed class HanaCompanyDatabase : ICompanyDatabase
     private const string Msg = "EXPERIMENTAL: the SAP HANA database provider is not implemented yet. Use Database:Provider = SqlServer.";
 
     public Task<IReadOnlyList<PersonalFieldRow>> LoadPersonalFieldsAsync(string companyDb, CancellationToken ct) => throw new NotSupportedException(Msg);
+
+    public Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> LoadUserTableColumnsAsync(string companyDb, CancellationToken ct) => throw new NotSupportedException(Msg);
 }
