@@ -1,8 +1,10 @@
+using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using B1.Mcp.Compat.Core.Catalog;
+using B1.Mcp.Compat.Core.Config;
 using B1.Mcp.Compat.Core.Edm;
 using B1.Mcp.Compat.Core.Kb;
 using B1.Mcp.Compat.Core.Mappings;
@@ -24,6 +26,8 @@ public sealed partial class ProxyEndpoint
     private readonly Dictionary<string, MetadataSynthesizer> _synths;
     private readonly ICompanyDatabase _db;
     private readonly SessionRegistry _sessions = new();
+    private readonly ConcurrentDictionary<string, bool> _buildWarned = new();
+    private readonly BuildPolicy _policy;
     private readonly ILogger _log;
     private readonly TtlCache<EdmModel> _models = new(TimeSpan.FromMinutes(10));
     private readonly TtlCache<UserCatalog> _catalogs = new(TimeSpan.FromMinutes(5));
@@ -36,13 +40,14 @@ public sealed partial class ProxyEndpoint
     private static readonly HashSet<string> SkipResponseHeaders = new(StringComparer.OrdinalIgnoreCase)
         { "content-encoding", "transfer-encoding", "content-length", "set-cookie", "connection", "keep-alive" };
 
-    public ProxyEndpoint(CompatOptions o, HttpClient http, IReadOnlyDictionary<string, KnowledgeBase> kbs, MappingOverrides ov, ICompanyDatabase db, ILogger log)
+    public ProxyEndpoint(CompatOptions o, HttpClient http, IReadOnlyDictionary<string, KnowledgeBase> kbs, MappingOverrides ov, ICompanyDatabase db, BuildPolicy policy, ILogger log)
     {
         _o = o;
         _http = http;
         _upstream = o.Upstream.Url.TrimEnd('/');
         _synths = kbs.ToDictionary(k => k.Key, k => new MetadataSynthesizer(k.Value, ov));
         _db = db;
+        _policy = policy;
         _log = log;
     }
 
@@ -105,11 +110,15 @@ public sealed partial class ProxyEndpoint
             return;
         }
         var code = _sessions.VersionFor(SessionOf(ctx));
-        if (code == null || !KbLoader.Releases.TryGetValue(code, out var release) || !_synths.TryGetValue(release, out var synth))
+        var decision = _policy.Resolve(code);
+        if (!decision.Ok || !_synths.TryGetValue(decision.Release!, out var synth))
         {
-            await WriteJsonAsync(ctx, 502, ErrorJson($"b1-mcp-compat: no knowledge base for Service Layer version code '{code ?? "unknown"}'. Verified releases: {string.Join(", ", _synths.Keys.Order().Select(k => "FP" + k))}. To add a release, distill its dictionary (see compat/README.md, 'A new installation that is not verified')."));
+            _log.LogWarning("Metadata refused: {Msg}", decision.Error);
+            await WriteJsonAsync(ctx, 502, ErrorJson(decision.Error ?? BuildPolicy.UnsupportedMessage));
             return;
         }
+        var release = decision.Release!;
+        WarnOnce(release, decision);
         try
         {
             var model = await _models.GetAsync(company, async () =>
@@ -118,7 +127,7 @@ public sealed partial class ProxyEndpoint
                 if (!r.IsSuccessStatusCode) throw new UpstreamStatusException((int)r.StatusCode, await r.Content.ReadAsStringAsync(ctx.RequestAborted));
                 return EdmModel.Parse(await r.Content.ReadAsStringAsync(ctx.RequestAborted));
             });
-            var catalog = new LazyCatalog(ct => _catalogs.GetAsync(company, () => LoadUserCatalogAsync(ctx)));
+            var catalog = new LazyCatalog(ct => _catalogs.GetAsync(company, () => LoadUserCatalogAsync(ctx, company)));
             var xml = await synth.BuildAsync(q, model, catalog, s => _log.LogWarning("Entity set {Name} skipped from the list: not in the knowledge base and not a user table/object of {Company}", s, company), ctx.RequestAborted);
             _log.LogInformation("SYNTH metadata {Entity}", q.EntitySet ?? "(list)");
             ctx.Response.StatusCode = 200;
@@ -143,12 +152,26 @@ public sealed partial class ProxyEndpoint
     // ------------------------------------------------------------ user-defined objects
 
     /// <summary>Reads the company's user fields, tables and objects from the Service Layer itself (UserFieldsMD, UserTablesMD, UserObjectsMD) with the caller's session.</summary>
-    private async Task<UserCatalog> LoadUserCatalogAsync(HttpContext ctx)
+    private async Task<UserCatalog> LoadUserCatalogAsync(HttpContext ctx, string company)
     {
         var fields = await ReadAllAsync(ctx, "UserFieldsMD?$select=Name,TableName,Description");
         var tables = await ReadAllAsync(ctx, "UserTablesMD?$select=TableName,TableDescription,TableType");
         var objects = await ReadAllAsync(ctx, "UserObjectsMD");
-        return UserCatalog.Parse(fields, tables, objects);
+        var catalog = UserCatalog.Parse(fields, tables, objects);
+        // Child tables of user objects take ALL their physical columns (see UserCatalog.PhysicalColumns). Without a database login they stay unresolved.
+        if (catalog.UserObjects.Values.Any(o => o.Children.Count > 0))
+        {
+            try
+            {
+                foreach (var (t, cols) in await _db.LoadUserTableColumnsAsync(company, ctx.RequestAborted))
+                    catalog.PhysicalColumns[t] = new HashSet<string>(cols, StringComparer.OrdinalIgnoreCase);
+            }
+            catch (Exception e) when (e is CompanyDatabaseException or NotSupportedException or InvalidOperationException)
+            {
+                _log.LogWarning("Physical columns of user-object child tables unavailable for {Company}: {Msg}", company, e.Message);
+            }
+        }
+        return catalog;
     }
 
     private async Task<List<JsonElement>> ReadAllAsync(HttpContext ctx, string first)
@@ -203,10 +226,18 @@ public sealed partial class ProxyEndpoint
             await WriteJsonAsync(ctx, 502, ErrorJson("b1-mcp-compat: the company database of this session is unknown. Log in through the connector."));
             return;
         }
+        var decision = _policy.Resolve(_sessions.VersionFor(SessionOf(ctx)));
+        if (!decision.Ok)
+        {
+            await WriteJsonAsync(ctx, 502, ErrorJson(decision.Error!));
+            return;
+        }
+        var release = decision.Release!;
+        WarnOnce(release, decision);
         try
         {
             var rows = await _personal.GetAsync(company, () => _db.LoadPersonalFieldsAsync(company, ctx.RequestAborted));
-            var json = PersonalFieldMapper.ToJson(rows, table, $"{ctx.Request.Scheme}://{ctx.Request.Host}");
+            var json = PersonalFieldMapper.ToJson(rows, table, release, $"{ctx.Request.Scheme}://{ctx.Request.Host}");
             _log.LogInformation("SYNTH personal fields {Table}", table);
             ctx.Response.StatusCode = 200;
             ctx.Response.ContentType = "application/json;odata.metadata=minimal;charset=utf-8";
@@ -298,6 +329,14 @@ public sealed partial class ProxyEndpoint
         }
         if (r.Content.Headers.ContentLength is { } l) res.ContentLength = l;
         await r.Content.CopyToAsync(res.Body, ctx.RequestAborted);
+    }
+
+    /// <summary>Logs the unverified-build warning (or the verified confirmation) once per release.</summary>
+    private void WarnOnce(string release, BuildDecision d)
+    {
+        if (!_buildWarned.TryAdd(release, true)) return;
+        if (d.Warning != null) _log.LogWarning("{Msg}", d.Warning);
+        else _log.LogInformation("Release FP{Release}: declared build {Build} is the one the knowledge base was extracted from (verified).", release, _policy.Build);
     }
 
     private void CaptureLogin(byte[]? requestBody, string responseText)
