@@ -30,6 +30,14 @@ public sealed class UserCatalog
 
     public Dictionary<string, UserObject> UserObjects { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Physical columns of user tables ("@NAME" to its column names), read from the company database. Only the lines (child) tables of user
+    /// objects need them: the Service Layer builds a child collection from ALL physical columns of the child table, with no list or filter
+    /// (2608 engine), so columns such as EncryptIV appear there and nowhere in the Service Layer's own data.
+    /// Empty when the database is not reachable (the properties then stay unresolved and the entity fails closed).
+    /// </summary>
+    public Dictionary<string, HashSet<string>> PhysicalColumns { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     public static string UdfKey(string table, string column) => table + "|" + column;
 
     public bool TryGetUdf(string table, string column, out string descr) => Udfs.TryGetValue(UdfKey(table, column), out descr!);
@@ -38,7 +46,10 @@ public sealed class UserCatalog
     public bool HasColumn(string table, string column)
     {
         if (TryGetUdf(table, column, out _)) return true;
-        return UserTables.TryGetValue(table.TrimStart('@'), out var t) && SystemColumns.Of(t.TableType).Contains(column);
+        if (!UserTables.TryGetValue(table.TrimStart('@'), out var t)) return false;
+        if (SystemColumns.Of(t.TableType).Contains(column)) return true;
+        return t.TableType is "bott_MasterDataLines" or "bott_DocumentLines"
+            && PhysicalColumns.TryGetValue("@" + t.TableName, out var cols) && cols.Contains(column);
     }
 
     public static UserCatalog Parse(IEnumerable<JsonElement> fields, IEnumerable<JsonElement> tables, IEnumerable<JsonElement> objects)
@@ -73,11 +84,14 @@ public static class SystemColumns
     private static readonly HashSet<string> NoObject = new(StringComparer.OrdinalIgnoreCase) { "Code", "Name" };
 
     private static readonly HashSet<string> MasterData = new(StringComparer.OrdinalIgnoreCase)
-        { "Code", "Name", "DocEntry", "Canceled", "Object", "LogInst", "UserSign", "Transfered", "CreateDate", "CreateTime", "UpdateDate", "UpdateTime", "DataSource" };
+        { "Code", "Name", "DocEntry", "Canceled", "Object", "LogInst", "UserSign", "Transfered", "CreateDate", "CreateTime", "UpdateDate", "UpdateTime", "DataSource",
+          // Added by the 2608 engine to every UDO of type MasterData and Document (unconditional). Older Service Layers
+          // never list them in their plain $metadata, and only properties of the plain model are ever resolved, so nothing changes there.
+          "NaturalPer", "DPPStatus" };
 
     private static readonly HashSet<string> Document = new(StringComparer.OrdinalIgnoreCase)
         { "DocEntry", "DocNum", "Period", "Instance", "Series", "Handwrtten", "Status", "RequestStatus", "Creator", "Remark", "Canceled", "Object", "LogInst",
-          "UserSign", "Transfered", "CreateDate", "CreateTime", "UpdateDate", "UpdateTime", "DataSource" };
+          "UserSign", "Transfered", "CreateDate", "CreateTime", "UpdateDate", "UpdateTime", "DataSource", "NaturalPer", "DPPStatus" };
 
     private static readonly HashSet<string> MasterDataLines = new(StringComparer.OrdinalIgnoreCase) { "Code", "LineId", "Object", "LogInst" };
     private static readonly HashSet<string> DocumentLines = new(StringComparer.OrdinalIgnoreCase) { "DocEntry", "LineId", "Object", "LogInst", "VisOrder" };
@@ -102,9 +116,12 @@ public sealed class CompanyDatabaseException : Exception
     public CompanyDatabaseException(string message, Exception? inner = null) : base(message, inner) { }
 }
 
-/// <summary>Read access to the company database, needed only for OPFS (personal data classification). SQL Server is implemented; SAP HANA is an experimental stub.</summary>
+/// <summary>Read access to the company database: OPFS (personal data classification) and the physical columns of user-object child tables. SQL Server is implemented; SAP HANA is an experimental stub.</summary>
 public interface ICompanyDatabase
 {
     /// <summary>OPFS rows. Throws <see cref="CompanyDatabaseException"/> when OPFS does not exist.</summary>
     Task<IReadOnlyList<PersonalFieldRow>> LoadPersonalFieldsAsync(string companyDb, CancellationToken ct);
+
+    /// <summary>Physical columns of every user table ("@NAME" to its column names).</summary>
+    Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> LoadUserTableColumnsAsync(string companyDb, CancellationToken ct);
 }
