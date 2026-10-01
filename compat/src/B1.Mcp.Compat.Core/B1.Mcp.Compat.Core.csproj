@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <!-- Table the native personal-data action queries OPFS with, per requested table (observed on FP2608, valid for FP2208 and later). -->
-    <EmbeddedResource Include="Personal\pf-table-map.json" LogicalName="pf-table-map.json" />
+    <EmbeddedResource Include="Personal\pf-map-*.json" LogicalName="%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

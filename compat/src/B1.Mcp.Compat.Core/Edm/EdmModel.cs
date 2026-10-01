@@ -13,6 +13,13 @@ public sealed class EdmModel
     /// <summary>EntityType, ComplexType and EnumType elements by short name.</summary>
     public IReadOnlyDictionary<string, XElement> Types { get; }
 
+    /// <summary>
+    /// Every declaration of each type name, in document order. The Service Layer declares some names twice
+    /// (FP2608 declares ComplexType "Event" twice, once for webhooks and once for event categories) and a scoped $metadata
+    /// repeats every declaration of a referenced type.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<XElement>> Declarations { get; }
+
     /// <summary>EntitySets in document order.</summary>
     public IReadOnlyList<XElement> Sets { get; }
 
@@ -22,13 +29,20 @@ public sealed class EdmModel
     {
         Document = doc;
         var types = new Dictionary<string, XElement>(StringComparer.Ordinal);
+        var decls = new Dictionary<string, List<XElement>>(StringComparer.Ordinal);
         foreach (var e in doc.Descendants())
         {
             if (e.Name.Namespace != Ns) continue;
             var ln = e.Name.LocalName;
-            if ((ln is "EntityType" or "ComplexType" or "EnumType") && e.Attribute("Name") is { } n) types[n.Value] = e;
+            if ((ln is "EntityType" or "ComplexType" or "EnumType") && e.Attribute("Name") is { } n)
+            {
+                types[n.Value] = e;
+                if (!decls.TryGetValue(n.Value, out var l)) decls[n.Value] = l = new();
+                l.Add(e);
+            }
         }
         Types = types;
+        Declarations = decls.ToDictionary(kv => kv.Key, kv => (IReadOnlyList<XElement>)kv.Value, StringComparer.Ordinal);
         Sets = doc.Descendants(Ns + "EntityContainer").SelectMany(c => c.Elements(Ns + "EntitySet")).ToList();
         SetsByName = Sets.GroupBy(s => (string)s.Attribute("Name")!).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
     }

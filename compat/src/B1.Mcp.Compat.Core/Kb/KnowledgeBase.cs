@@ -29,6 +29,32 @@ public sealed class KbSource
     [JsonPropertyName("at")] public DateTimeOffset At { get; set; }
 }
 
+/// <summary>One Service Layer file the knowledge base was extracted from.</summary>
+public sealed class KbBuildFile
+{
+    [JsonPropertyName("name")] public string Name { get; set; } = "";
+    [JsonPropertyName("fileVersion")] public string? FileVersion { get; set; }
+    [JsonPropertyName("fileVersionFixed")] public string? FileVersionFixed { get; set; }
+    [JsonPropertyName("sha256")] public string? Sha256 { get; set; }
+}
+
+/// <summary>Fingerprint of the Service Layer build the knowledge base was extracted from (the engine files of that Service Layer).</summary>
+public sealed class KbBuild
+{
+    [JsonPropertyName("files")] public List<KbBuildFile> Files { get; set; } = new();
+
+    /// <summary>
+    /// The Login "Version" code this build implies: file version 10.0.340.0 is 1000340.
+    /// The Service Layer exposes no hashes and no patch level, so this code is the only part of the build it can be compared with.
+    /// </summary>
+    public string? LoginCode()
+    {
+        var v = Files.FirstOrDefault(f => f.Name.Equals("OBServerDLL.dll", StringComparison.OrdinalIgnoreCase))?.FileVersionFixed?.Split('.');
+        return v is { Length: >= 3 } && int.TryParse(v[0], out var a) && int.TryParse(v[1], out var b) && int.TryParse(v[2], out var c)
+            ? $"{a}{b:00}{c:000}" : null;
+    }
+}
+
 /// <summary>
 /// Knowledge base: SAP-standard knowledge of what is behind standard entities and fields (label, table, column, child table,
 /// enum valid values). A property whose value is null exists natively but is NOT annotated (the native scoped metadata omits
@@ -40,6 +66,7 @@ public sealed class KnowledgeBase
     [JsonPropertyName("format")] public int Format { get; set; } = 2;
     [JsonPropertyName("generatedAt")] public DateTimeOffset GeneratedAt { get; set; }
     [JsonPropertyName("sources")] public List<KbSource> Sources { get; set; } = new();
+    [JsonPropertyName("build")] public KbBuild? Build { get; set; }
     [JsonPropertyName("sets")] public Dictionary<string, KbSet> Sets { get; set; } = new(StringComparer.Ordinal);
 
     /// <summary>Property blobs (shared between entity sets): property name to annotation or null.</summary>

@@ -98,5 +98,14 @@ public sealed partial class SqlServerCompanyDatabase : ICompanyDatabase
         return rows.Select(r => new PersonalFieldRow(Convert.ToInt32(r[0]), S(r[1]), S(r[2]), r[3] as string, r[4] as string, r[5] as string, r[6] as string)).ToList();
     }
 
+    public async Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> LoadUserTableColumnsAsync(string companyDb, CancellationToken ct)
+    {
+        await using var c = await OpenAsync(companyDb, ct);
+        var rows = await QueryAsync(c,
+            "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME LIKE '@%' ORDER BY TABLE_NAME, ORDINAL_POSITION", 2, ct);
+        return rows.GroupBy(r => S(r[0]), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.Select(r => S(r[1])).ToList(), StringComparer.OrdinalIgnoreCase);
+    }
+
     private static string S(object? o) => (o as string ?? o?.ToString() ?? "").Trim();
 }
