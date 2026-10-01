@@ -33,7 +33,11 @@ public sealed class LazyCatalog
 ///     entity set = Code, table "@"+TableName; child tables from UserObjectMD_ChildTables): the property must be a system column of the
 ///     table type or one of its user fields; Label = ColumnName = property name for system columns, Label = description for U_ columns;
 ///     entity label = TableDescription; collection of a UDO line type: Label = TableDescription of the child table, ChildTableName = "@"+child table.
-///  Anything else makes the entity fail (<see cref="UnresolvedMappingException"/>).
+///  Renamed property: a data property named like its type is exposed as "&lt;Type&gt;Property" (OData); it resolves by its engine name "&lt;Type&gt;".
+///  Unresolved cases (ADR 0004): a user field (U_) that is not in the catalog of a known table is left out like the native SL does
+///  (its engine returns a null description for a column missing in the table); an enum member without a stored value is served without ValidValue.
+///  Anything else (a standard property the KB does not list, a user-table column or child the catalog does not explain, an entity
+///  in neither the KB nor the catalog) still fails the entity (<see cref="UnresolvedMappingException"/>): the native behaviour is not verified for it.
 /// </summary>
 public sealed class MetadataSynthesizer
 {
@@ -132,47 +136,51 @@ public sealed class MetadataSynthesizer
         while (queue.Count > 0)
         {
             var tn = queue.Dequeue();
-            if (!full.Types.TryGetValue(tn, out var tdef)) continue;
-            if (tdef.Name.LocalName == "EnumType") { enumNames.Add(tn); continue; }
-            order.Add(tn);
-            var el = Slim(tdef);
-            tables.TryGetValue(tn, out var tabs);
-            var blob = info.UserSet ? null : _kb.TypeOf(setName, tn);
+            if (!full.Declarations.TryGetValue(tn, out var decls)) continue;
+            // Defect replicated from the Service Layer: a type name it declares twice (ComplexType "Event") is answered once per declaration.
+            foreach (var tdef in decls)
+            {
+                if (tdef.Name.LocalName == "EnumType") { if (!enumNames.Contains(tn)) enumNames.Add(tn); continue; }
+                order.Add(tn);
+                var el = Slim(tdef);
+                tables.TryGetValue(tn, out var tabs);
+                var blob = info.UserSet ? null : _kb.TypeOf(setName, tn);
 
-            foreach (var p in el.Elements(EdmModel.Ns + "Property").ToList())
-            {
-                var pn = (string)p.Attribute("Name")!;
-                var ptype = EdmModel.ShortType((string?)p.Attribute("Type") ?? "");
-                var structured = full.IsStructured(ptype);
-                var (verdict, kp) = await DecideAsync(setName, tn, pn, ptype, structured, tabs, blob, info, catalog, ct);
-                if (verdict == Verdict.Drop)
+                foreach (var p in el.Elements(EdmModel.Ns + "Property").ToList())
                 {
-                    // Observed natively: an omitted property still pulls its enum type into the answer (but not its structured type).
-                    p.Remove();
-                    if (q.Dependency && full.IsEnum(ptype) && seen.Add(ptype)) queue.Enqueue(ptype);
-                    continue;
-                }
-                if (verdict == Verdict.Unresolved) { unresolved.Add(new UnresolvedItem("property", setName, tn, pn, tabs?.FirstOrDefault())); continue; }
-                if (q.Label && kp!.Label != null) p.Add(EdmModel.Annotation(TermLabel, kp.Label));
-                if (q.WithField && kp!.Column != null) p.Add(EdmModel.Annotation(TermColumn, kp.Column));
-                if (q.WithField && kp!.ChildTable != null) p.Add(EdmModel.Annotation(TermChild, kp.ChildTable));
-                if (q.Dependency && (structured || full.IsEnum(ptype)))
-                {
-                    if (structured && kp!.ChildTable != null)
+                    var pn = (string)p.Attribute("Name")!;
+                    var ptype = EdmModel.ShortType((string?)p.Attribute("Type") ?? "");
+                    var structured = full.IsStructured(ptype);
+                    var (verdict, kp) = await DecideAsync(setName, tn, pn, ptype, structured, tabs, blob, info, catalog, ct);
+                    if (verdict == Verdict.Drop)
                     {
-                        if (!tables.TryGetValue(ptype, out var l)) tables[ptype] = l = new();
-                        if (!l.Contains(kp.ChildTable, StringComparer.OrdinalIgnoreCase)) l.Add(kp.ChildTable);
+                        // Observed natively: an omitted property still pulls its enum type into the answer (but not its structured type).
+                        p.Remove();
+                        if (q.Dependency && full.IsEnum(ptype) && seen.Add(ptype)) queue.Enqueue(ptype);
+                        continue;
                     }
-                    if (seen.Add(ptype)) queue.Enqueue(ptype);
+                    if (verdict == Verdict.Unresolved) { unresolved.Add(new UnresolvedItem("property", setName, tn, pn, tabs?.FirstOrDefault())); continue; }
+                    if (q.Label && kp!.Label != null) p.Add(EdmModel.Annotation(TermLabel, kp.Label));
+                    if (q.WithField && kp!.Column != null) p.Add(EdmModel.Annotation(TermColumn, kp.Column));
+                    if (q.WithField && kp!.ChildTable != null) p.Add(EdmModel.Annotation(TermChild, kp.ChildTable));
+                    if (q.Dependency && (structured || full.IsEnum(ptype)))
+                    {
+                        if (structured && kp!.ChildTable != null)
+                        {
+                            if (!tables.TryGetValue(ptype, out var l)) tables[ptype] = l = new();
+                            if (!l.Contains(kp.ChildTable, StringComparer.OrdinalIgnoreCase)) l.Add(kp.ChildTable);
+                        }
+                        if (seen.Add(ptype)) queue.Enqueue(ptype);
+                    }
                 }
+                if (q.Dependency && (string?)tdef.Attribute("BaseType") is { } bt)
+                {
+                    var b = EdmModel.ShortType(bt);
+                    if (tabs != null && !tables.ContainsKey(b)) tables[b] = new List<string>(tabs);
+                    if (seen.Add(b)) queue.Enqueue(b);
+                }
+                typeOut.Add(el);
             }
-            if (q.Dependency && (string?)tdef.Attribute("BaseType") is { } bt)
-            {
-                var b = EdmModel.ShortType(bt);
-                if (tabs != null && !tables.ContainsKey(b)) tables[b] = new List<string>(tabs);
-                if (seen.Add(b)) queue.Enqueue(b);
-            }
-            typeOut.Add(el);
         }
 
         var enumOut = new List<XElement>();
@@ -189,7 +197,8 @@ public sealed class MetadataSynthesizer
                     if (val == null)
                     {
                         if (known != null && known.TryGetValue(mn, out var kv)) val = kv;
-                        else { unresolved.Add(new UnresolvedItem("enum", setName, en, mn, null)); continue; }
+                        // A member without a stored database value is answered without ValidValue, like the KB's null facts.
+                        else continue;
                     }
                     if (val != null) m.Add(EdmModel.Annotation(TermValid, val));
                 }
@@ -243,6 +252,12 @@ public sealed class MetadataSynthesizer
             if (m != null) return (Verdict.Annotate, new KbProp { Label = m.Label ?? prop, Column = m.Column ?? prop, ChildTable = m.ChildTable });
         }
 
+        // OData does not allow a property named like its type: the Service Layer exposes "<Type>Property" for the data property "<Type>"
+        // (the engine's name lookup resolves "<Type>Property" back to "<Type>"; the annotation uses the engine property, whose
+        // column is the physical one). For the user-defined paths below, look the property up by its engine name.
+        var engineProp = prop.Length > "Property".Length && prop.EndsWith("Property", StringComparison.Ordinal)
+            && string.Equals(prop[..^"Property".Length], typeName, StringComparison.Ordinal) ? typeName : prop;
+
         if (!info.UserSet)
         {
             // 2. knowledge base
@@ -252,11 +267,14 @@ public sealed class MetadataSynthesizer
             if (structured && blob != null) return (Verdict.Drop, null);
 
             // 3. user-defined field of a standard table
-            if (prop.StartsWith("U_", StringComparison.Ordinal) && tables != null)
+            if (engineProp.StartsWith("U_", StringComparison.Ordinal) && tables != null)
             {
                 var cat = await catalog.GetAsync(ct);
                 foreach (var t in tables)
-                    if (cat.TryGetUdf(t, prop, out var descr)) return (Verdict.Annotate, new KbProp { Label = descr, Column = prop });
+                    if (cat.TryGetUdf(t, engineProp, out var descr)) return (Verdict.Annotate, new KbProp { Label = descr, Column = engineProp });
+                // Native rule (GetFieldConvertedDescription, slot 0x2b8): a column that does not exist in the looked-up table gives a null
+                // description and the property is left out of the scoped answer, as for the KB's null facts.
+                return (Verdict.Drop, null);
             }
             return (Verdict.Unresolved, null);
         }
@@ -272,10 +290,10 @@ public sealed class MetadataSynthesizer
             return (Verdict.Annotate, new KbProp { Label = ct2?.Descr ?? child.TableName, ChildTable = "@" + child.TableName });
         }
         var table = tables?.FirstOrDefault();
-        if (table == null || !uc.HasColumn(table, prop)) return (Verdict.Unresolved, null);
-        if (prop.StartsWith("U_", StringComparison.Ordinal))
-            return uc.TryGetUdf(table, prop, out var d) ? (Verdict.Annotate, new KbProp { Label = d, Column = prop }) : (Verdict.Unresolved, null);
-        return (Verdict.Annotate, new KbProp { Label = prop, Column = prop });
+        if (table == null || !uc.HasColumn(table, engineProp)) return (Verdict.Unresolved, null);
+        if (engineProp.StartsWith("U_", StringComparison.Ordinal))
+            return uc.TryGetUdf(table, engineProp, out var d) ? (Verdict.Annotate, new KbProp { Label = d, Column = engineProp }) : (Verdict.Unresolved, null);
+        return (Verdict.Annotate, new KbProp { Label = engineProp, Column = engineProp });
     }
 
     public static readonly XNamespace Edmx = EdmModel.EdmxNs;

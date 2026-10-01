@@ -24,9 +24,9 @@ public static class PersonalFieldMapper
     /// <summary>Enum name of an OPFS category letter, as served by the Service Layer.</summary>
     public static string CategoryName(string? letter) => "pfsc_" + (letter != null && Category.TryGetValue(letter.Trim(), out var c) ? c : "None");
 
-    public static string ToJson(IEnumerable<PersonalFieldRow> rows, string table, string contextBaseUrl)
+    public static string ToJson(IEnumerable<PersonalFieldRow> rows, string table, string release, string contextBaseUrl)
     {
-        var (opfsTable, category) = PersonalTableMap.Resolve(table);
+        var (opfsTable, category) = PersonalTableMap.Resolve(table, release);
         using var ms = new MemoryStream();
         using (var w = new Utf8JsonWriter(ms, new JsonWriterOptions { Indented = true }))
         {
