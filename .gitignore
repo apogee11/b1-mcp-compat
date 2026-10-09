@@ -35,12 +35,9 @@ Thumbs.db
 # Dev profiles (encrypted credentials)
 /.dev/
 
-# rea/data: dummy keystores (password "changeit"), tracked on purpose
-!/rea/data/**/*.p12
-!/rea/data/**/bin/
-!/rea/data/**/*.zip
-!/rea/data/**/*.log
+# rea/ es un repositorio independiente
+/rea/
 
-# rea: credenciales de prueba locales
-rea/creds.local.env
-/rea/data/*/out/
+# Python bytecode
+__pycache__/
+*.pyc
