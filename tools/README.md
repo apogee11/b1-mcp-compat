@@ -5,7 +5,11 @@ Everything here is read-only against your SAP Business One installation and need
 | Folder | Script | Where to run | What it does |
 |---|---|---|---|
 | `collect/` | `check-upstream.ps1` | any Windows machine that reaches the Service Layer | Checks that an older Service Layer gives the connector what it needs: user fields, user tables and user objects readable through the Service Layer (`UserFieldsMD`, `UserTablesMD`, `UserObjectsMD`) and matching the `U_*` properties of `$metadata`. Optional `-SqlServer` also reads `OPFS`. Output: `out\check-<Tag>\` |
+| `collect/` | `05-verify-version.ps1` + `verify_compare.py` | any Windows machine that reaches the Service Layer (script); anywhere with Python (comparator) | Verification of FP2208/FP2408: login version, full flat `$metadata`, `InventoryGen*` probe, UDF/UDT/UDO counts, optional SQL (`-SqlAuth Sql|Windows`) counts and company-DB columns. Comparator checks it offline against the KB. Output: `out\verify-<Tag>\`. Steps: `rea/12-verificacion-2208-2408-comandos.md` |
+| `collect/` | `06-check-build.ps1` | the Service Layer server | Read-only: prints the build id of the Service Layer and compares them with `docs/covered-builds.json` (`COINCIDE` / `DISTINTA` / `NO CUBIERTA`). If not covered, send the hashes to the repository maintainer: see `compat/CHECK-YOUR-BUILD.md` |
 | `e2e/` | `e2e.ps1` | a machine with Node.js 22+ | Runs the SAP MCP server (`b1-mcp-server/`, see the root README) through the connector (`-Exe`, or `dotnet run` from a checkout) against your Service Layer and checks its tools |
+| `parity/` | `meta_parity.py` | the development server with a native FP2608 and a built connector | Annotated `$metadata` of every entity set (458) and personal-field tables (3053) of the connector (SimulateLegacy) vs native; credentials from `rea/creds.local.env`; exit 0 = identical |
+| `parity/` | `transparency.py` | same | Connector with `SimulateLegacy=false` vs the native SL: same status/body/headers for reads, paging, errors, `$metadata`, `$batch` |
 | `parity/` | `run-parity.ps1` | the development server with a native FP2608 | Proves the connector reproduces native FP2608 answers (N/N identical) |
 
 ## Quick start on an old installation (e.g. FP2208)
