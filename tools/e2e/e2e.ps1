@@ -2,10 +2,11 @@
 # Needs Node.js 22+ (and internet the first time for `npm install`) on the machine that runs it; the SL and SQL can be elsewhere.
 # The connector is the self-contained exe (-Exe) or, from a source checkout, `dotnet run`.
 #   .\e2e.ps1 -SlUrl https://server:50000 -Company SBODEMO -User manager -Exe ..\..\compat\publish\B1.Mcp.Compat.Host.exe
+# -Release / -Build: release (2608) and build id printed by tools\collect-check-build.ps1; the Service Layer cannot tell them. -AllowUnsupportedBuild: use the release's knowledge base for a build without one (not verified).
 # Database: Integrated Security by default. For a SQL login pass -SqlConnection 'Server=HOST;User Id=..;Password=..;TrustServerCertificate=true;Initial Catalog={CompanyDB}'
 param(
   [Parameter(Mandatory)][string]$SlUrl, [Parameter(Mandatory)][string]$Company, [Parameter(Mandatory)][string]$User,
-  [string]$Exe = '', [string]$SqlConnection = '', [int]$ConnectorPort = 50300, [int]$McpPort = 3100, [string]$OutDir = '.\out\e2e'
+  [string]$Exe = '', [string]$SqlConnection = '', [int]$ConnectorPort = 50300, [string]$Release = '', [string]$Build = '', [switch]$AllowUnsupportedBuild, [int]$McpPort = 3100, [string]$OutDir = '.\out\e2e'
 )
 . (Join-Path $PSScriptRoot '..\lib\Common.ps1')
 $ErrorActionPreference = 'Stop'
@@ -24,6 +25,7 @@ $pw = Get-PlainPassword 'B1_PASSWORD' "Service Layer password for $User"
 $procs = @()
 try {
   $env:Compat__Listen = "http://127.0.0.1:$ConnectorPort"; $env:Compat__Upstream__Url = $SlUrl
+  if ($Release) { $env:Compat__Release = $Release }; if ($Build) { $env:Compat__Build = $Build }; if ($AllowUnsupportedBuild) { $env:Compat__AllowUnsupportedBuild = 'true' }
   if ($SqlConnection) { $env:Compat__Database__ConnectionString = $SqlConnection }
   if ($Exe) { $procs += Start-Process $Exe -WorkingDirectory (Split-Path (Resolve-Path $Exe)) -RedirectStandardOutput "$OutDir\connector.log" -RedirectStandardError "$OutDir\connector.err.log" -WindowStyle Hidden -PassThru }
   else { $procs += Start-Process dotnet -ArgumentList @('run', '-c', 'Release', '--project', (Join-Path $root 'compat\src\B1.Mcp.Compat.Host')) -RedirectStandardOutput "$OutDir\connector.log" -RedirectStandardError "$OutDir\connector.err.log" -WindowStyle Hidden -PassThru }
@@ -43,7 +45,7 @@ try {
 } finally {
   $procs | ForEach-Object { try { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue } catch {} }
   if (-not $hadPassword) { Remove-Item Env:B1_PASSWORD -ErrorAction SilentlyContinue }
-  foreach ($n in 'B1_USERNAME', 'B1_COMPANY_DB', 'SERVICE_LAYER_ROOT_URL', 'Compat__Listen', 'Compat__Upstream__Url', 'Compat__Database__ConnectionString') { Remove-Item "Env:$n" -ErrorAction SilentlyContinue }
+  foreach ($n in 'B1_USERNAME', 'B1_COMPANY_DB', 'SERVICE_LAYER_ROOT_URL', 'Compat__Listen', 'Compat__Upstream__Url', 'Compat__Database__ConnectionString', 'Compat__Release', 'Compat__Build', 'Compat__AllowUnsupportedBuild') { Remove-Item "Env:$n" -ErrorAction SilentlyContinue }
 }
 Write-Host "`nLogs and report: $OutDir  (connector.log shows what was synthesized)"
 exit $code

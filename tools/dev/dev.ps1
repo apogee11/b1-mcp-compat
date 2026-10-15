@@ -3,7 +3,7 @@
 #   .\dev.ps1 -Name cliente2208 -Only compat
 #   .\dev.ps1 -SimulateLegacy          # make a native FP2608 behave as a legacy one
 # Ctrl+C here stops everything. Connector: http://127.0.0.1:50300  MCP server: http://localhost:3100/mcp
-param([string]$Name = 'default', [ValidateSet('both', 'compat', 'mcp')][string]$Only = 'both', [switch]$SimulateLegacy,
+param([string]$Name = 'default', [ValidateSet('both', 'compat', 'mcp')][string]$Only = 'both', [switch]$SimulateLegacy, [string]$Release, [string]$Build, [switch]$AllowUnsupportedBuild,
       [int]$ConnectorPort = 50300, [int]$McpPort = 3100)
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
@@ -19,6 +19,10 @@ $env:Compat__Listen = "http://127.0.0.1:$ConnectorPort"
 $env:Compat__Upstream__Url = $p.SlUrl
 $env:Compat__Database__ConnectionString = "Server=$($p.SqlHost);$sqlAuth;TrustServerCertificate=true;Initial Catalog={CompanyDB}"
 if ($SimulateLegacy) { $env:Compat__SimulateLegacy = 'true' }
+# Release/build of the Service Layer are declared, never detected (compat/README.md, 'Versions and builds'). Without them the connector refuses unless -AllowUnsupportedBuild.
+if ($Release) { $env:Compat__Release = $Release }
+if ($Build) { $env:Compat__Build = $Build }
+if ($AllowUnsupportedBuild) { $env:Compat__AllowUnsupportedBuild = 'true' }
 
 $env:NODE_ENV = 'development'; $env:AUTHENTICATION_MODE = 'direct'; $env:PORT = $McpPort; $env:HTTPS_ENABLED = 'false'
 $env:SERVICE_LAYER_ROOT_URL = "http://127.0.0.1:$ConnectorPort"; $env:B1_COMPANY_DB = $p.Company; $env:B1_USERNAME = $p.User; $env:B1_PASSWORD = $p.Password
