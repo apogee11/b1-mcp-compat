@@ -35,7 +35,8 @@ $names = @('OBServerDLL.dll', 'B1_Engine.dll') + @(Get-ChildItem -LiteralPath $S
 foreach ($n in ($names | Select-Object -Unique)) {
     $p = Join-Path $ServiceLayerPath $n
     if (Test-Path -LiteralPath $p) {
-        $local[$n] = [pscustomobject]@{ Version = Get-FixedVersion $p; Sha = (Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLower() }
+        try { $local[$n] = [pscustomobject]@{ Version = Get-FixedVersion $p; Sha = (Get-FileHash -LiteralPath $p -Algorithm SHA256 -ErrorAction Stop).Hash.ToLower() } }
+        catch { Write-Warning "$n cannot be read, skipped: $($_.Exception.Message)" }
     }
 }
 Write-Host "This server ($ServiceLayerPath):"

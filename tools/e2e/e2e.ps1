@@ -2,7 +2,7 @@
 # Needs Node.js 22+ (and internet the first time for `npm install`) on the machine that runs it; the SL and SQL can be elsewhere.
 # The connector is the self-contained exe (-Exe) or, from a source checkout, `dotnet run`.
 #   .\e2e.ps1 -SlUrl https://server:50000 -Company SBODEMO -User manager -Exe ..\..\compat\publish\B1.Mcp.Compat.Host.exe
-# -Release / -Build: release (2608) and build id printed by tools\collect-check-build.ps1; the Service Layer cannot tell them. -AllowUnsupportedBuild: use the release's knowledge base for a build without one (not verified).
+# -Release / -Build: release (2608) and build id printed by tools\collect\check-build.ps1; the Service Layer cannot tell them. -AllowUnsupportedBuild: use the release's knowledge base for a build without one (not verified).
 # Database: Integrated Security by default. For a SQL login pass -SqlConnection 'Server=HOST;User Id=..;Password=..;TrustServerCertificate=true;Initial Catalog={CompanyDB}'
 param(
   [Parameter(Mandatory)][string]$SlUrl, [Parameter(Mandatory)][string]$Company, [Parameter(Mandatory)][string]$User,
@@ -32,6 +32,7 @@ try {
 
   $env:NODE_ENV = 'development'; $env:AUTHENTICATION_MODE = 'direct'; $env:PORT = $McpPort; $env:HTTPS_ENABLED = 'false'
   $env:SERVICE_LAYER_ROOT_URL = "http://127.0.0.1:$ConnectorPort"; $env:B1_COMPANY_DB = $Company; $env:B1_USERNAME = $User; $env:B1_PASSWORD = $pw
+  $env:MCP_RATE_LIMIT_MAX = '1000000'; # the schema sweep makes ~500 calls; the server default is 120 per minute
   $env:AUTH_ALLOW_SELF_SIGNED = 'true'; $env:MCP_ALLOWED_HOSTS = '127.0.0.1,localhost'; $env:MCP_HUMAN_CONFIRMATION_ENABLED = 'false'; $env:APP_LOG_LEVEL = 'info'
   $procs += Start-Process node -ArgumentList 'dist\index.js' -WorkingDirectory $mcpDir -RedirectStandardOutput "$OutDir\mcp.log" -RedirectStandardError "$OutDir\mcp.err.log" -WindowStyle Hidden -PassThru
 
@@ -45,7 +46,7 @@ try {
 } finally {
   $procs | ForEach-Object { try { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue } catch {} }
   if (-not $hadPassword) { Remove-Item Env:B1_PASSWORD -ErrorAction SilentlyContinue }
-  foreach ($n in 'B1_USERNAME', 'B1_COMPANY_DB', 'SERVICE_LAYER_ROOT_URL', 'Compat__Listen', 'Compat__Upstream__Url', 'Compat__Database__ConnectionString', 'Compat__Release', 'Compat__Build', 'Compat__AllowUnsupportedBuild') { Remove-Item "Env:$n" -ErrorAction SilentlyContinue }
+  foreach ($n in 'MCP_RATE_LIMIT_MAX', 'B1_USERNAME', 'B1_COMPANY_DB', 'SERVICE_LAYER_ROOT_URL', 'Compat__Listen', 'Compat__Upstream__Url', 'Compat__Database__ConnectionString', 'Compat__Release', 'Compat__Build', 'Compat__AllowUnsupportedBuild') { Remove-Item "Env:$n" -ErrorAction SilentlyContinue }
 }
 Write-Host "`nLogs and report: $OutDir  (connector.log shows what was synthesized)"
 exit $code

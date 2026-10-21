@@ -3,8 +3,8 @@
 # UserFieldsMD/UserTablesMD/UserObjectsMD counts (reuses check-upstream.ps1), and with -SqlServer: CUFD/OUTB/OUDO/OPFS counts and
 # the table/column list of the company DB (INFORMATION_SCHEMA, structure only). No business rows, no field values.
 # Passwords: $env:B1_PASSWORD / $env:SQL_PASSWORD or a secure prompt. Never on the command line, never written to disk.
-#   .\05-verify-version.ps1 -SlUrl https://HOST:50000 -Company DB -User manager -Tag 2208 -SqlServer HOST -SqlAuth Sql -SqlUser sa
-#   .\05-verify-version.ps1 -SlUrl https://HOST:50000 -Company DB -User manager -Tag 2408 -SqlServer HOST\INST -SqlAuth Windows
+#   .\verify-version.ps1 -SlUrl https://HOST:50000 -Company DB -User manager -Tag 2208 -SqlServer HOST -SqlAuth Sql -SqlUser sa
+#   .\verify-version.ps1 -SlUrl https://HOST:50000 -Company DB -User manager -Tag 2408 -SqlServer HOST\INST -SqlAuth Windows
 param(
   [Parameter(Mandatory)][string]$SlUrl, [string]$Company, [Parameter(Mandatory)][string]$User,
   [Parameter(Mandatory)][ValidateSet('2208', '2408')][string]$Tag,
