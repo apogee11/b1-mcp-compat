@@ -100,7 +100,7 @@ function Save-Json {
   $Object | ConvertTo-Json -Depth 8 | Set-Content -Path $Path -Encoding UTF8
 }
 
-# CookieContainer drops cookies for dot-less host names (e.g. WIN-SET2R2U2763), so cookies are carried by hand.
+# CookieContainer drops cookies for dot-less host names (e.g. <servidor-dev>), so cookies are carried by hand.
 function Get-CookieHeader {
   param($Res)
   ($Res.SetCookie | ForEach-Object { ($_ -split ';')[0].Trim() }) -join '; '
