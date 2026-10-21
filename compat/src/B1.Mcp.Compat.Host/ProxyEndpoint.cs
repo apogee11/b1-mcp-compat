@@ -331,12 +331,12 @@ public sealed partial class ProxyEndpoint
         await r.Content.CopyToAsync(res.Body, ctx.RequestAborted);
     }
 
-    /// <summary>Logs the unverified-build warning (or the verified confirmation) once per release.</summary>
+    /// <summary>Logs the unverified-build warning (or the verified confirmation) once per package.</summary>
     private void WarnOnce(string release, BuildDecision d)
     {
         if (!_buildWarned.TryAdd(release, true)) return;
         if (d.Warning != null) _log.LogWarning("{Msg}", d.Warning);
-        else _log.LogInformation("Release FP{Release}: declared build {Build} is the one the knowledge base was extracted from (verified).", release, _policy.Build);
+        else _log.LogInformation("Package {Package}: declared build {Build} is the one the knowledge base was extracted from (supported).", release, _policy.Build);
     }
 
     private void CaptureLogin(byte[]? requestBody, string responseText)

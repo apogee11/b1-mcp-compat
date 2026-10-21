@@ -34,6 +34,15 @@ public class BuildPolicyTests
 
     private static BuildPolicy P(string? release, string? build, bool allow = false) => new(Kbs, Codes, release, build, allow);
 
+    [Theory]
+    [InlineData("B11000_2608", "2608")]
+    [InlineData("B11000SP_2408", "2408")]
+    [InlineData("B110002608HF_1", "2608")]
+    [InlineData("B110002208HF1_1", "2208")]
+    [InlineData("B1100002111HF_1", "2111")]
+    [InlineData("2608", "2608")]
+    public void Release_is_read_from_the_package_name(string package, string release) => Assert.Equal(release, BuildPolicy.ReleaseOf(package));
+
     [Fact]
     public void BuildId_is_file_version_plus_three_hash_prefixes() => Assert.Equal(Good2608, BuildPolicy.BuildIdOf(Kbs["2608"]));
 
@@ -87,7 +96,7 @@ public class BuildPolicyTests
         Assert.False(d.Verified);
         Assert.Contains(Other2608, d.Warning);
         Assert.Contains(Good2608, d.Warning);
-        Assert.Contains("NOT verified", d.Warning);
+        Assert.Contains("NOT supported", d.Warning);
     }
 
     [Fact]
@@ -150,8 +159,8 @@ public class BuildPolicyTests
         using var table = JsonDocument.Parse(File.ReadAllText(Path.Combine(root!, "docs", "covered-builds.json")));
         foreach (var b in table.RootElement.GetProperty("builds").EnumerateArray())
         {
-            var release = b.GetProperty("release").GetString()![2..];
-            using var gz = new GZipStream(File.OpenRead(Path.Combine(root!, "compat", "src", "B1.Mcp.Compat.Host", "Resources", $"kb-{release}.json.gz")), CompressionMode.Decompress);
+            var package = b.GetProperty("package").GetString()!;
+            using var gz = new GZipStream(File.OpenRead(Path.Combine(root!, "compat", "src", "B1.Mcp.Compat.Host", "Resources", $"kb-{package}.json.gz")), CompressionMode.Decompress);
             var id = BuildPolicy.BuildIdOf(KnowledgeBase.Load(gz));
             var f = b.GetProperty("files").EnumerateArray().ToDictionary(x => x.GetProperty("name").GetString()!);
             string Sha(string n) => f[n].GetProperty("sha256").GetString()![..12];

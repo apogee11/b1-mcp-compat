@@ -58,21 +58,22 @@ static async Task<int> Serve(string[] args)
     var kbs = KbLoader.Load(log);
     var overrides = KbLoader.LoadMappings(options, log);
     var db = CompanyDatabaseFactory.Create(options.Database);
+    var codes = KbLoader.Releases(kbs);
     BuildPolicy policy;
-    try { policy = new BuildPolicy(kbs, KbLoader.Releases, options.Release, options.Build, options.AllowUnsupportedBuild); }
+    try { policy = new BuildPolicy(kbs, codes, options.Release, options.Build, options.AllowUnsupportedBuild); }
     catch (InvalidOperationException e) { log.LogCritical("{Msg}", e.Message); return 2; }
     if (policy.Release != null)
     {
         // Checked once at start so the administrator sees it in the log; requests are checked again against the Login Version.
-        var pre = policy.Resolve(KbLoader.Releases.FirstOrDefault(r => r.Value == policy.Release).Key);
+        var pre = policy.Resolve(codes.FirstOrDefault(r => r.Value == policy.Release).Key);
         if (!pre.Ok) log.LogError("{Msg}", pre.Error);
         else if (pre.Warning != null) log.LogWarning("{Msg}", pre.Warning);
-        else log.LogInformation("Declared release FP{Release} and build {Build} match the verified knowledge base.", policy.Release, policy.Build);
+        else log.LogInformation("Declared release FP{Release} and build {Build} match the knowledge base of package {Package}.", policy.Release, policy.Build, pre.Release);
     }
     else log.LogWarning("Compat__Release is not set: the release is taken from the Login Version and the build is {Build}.", policy.Build ?? "not declared");
     var proxy = new ProxyEndpoint(options, Http.CreateUpstreamClient(options), kbs, overrides, db, policy, log);
     log.LogInformation("b1-mcp-compat on {Listen} -> {Upstream} (db provider {Provider}, knowledge bases {Kbs}{Sim})",
-        options.Listen, options.Upstream.Url, options.Database.Provider, string.Join(", ", kbs.Keys.Order().Select(k => "FP" + k)), options.SimulateLegacy ? ", SIMULATE LEGACY" : "");
+        options.Listen, options.Upstream.Url, options.Database.Provider, string.Join(", ", kbs.Keys.Order()), options.SimulateLegacy ? ", SIMULATE LEGACY" : "");
     if (listen.Scheme == Uri.UriSchemeHttp) log.LogWarning("Serving plain HTTP. The Service Layer session cookie travels unprotected: use only on a trusted loopback/LAN.");
 
     app.Run(proxy.HandleAsync);
