@@ -1,3 +1,4 @@
+using B1.Mcp.Compat.Core.Config;
 using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Net;
@@ -56,13 +57,23 @@ public sealed class SessionRegistry
     public string? VersionFor(string? sessionId) => sessionId != null && _version.TryGetValue(sessionId, out var v) ? v : _lastVersion;
 }
 
-/// <summary>Loads the knowledge bases embedded in the exe, one per Service Layer version (kb-2208.json.gz, ...).</summary>
+/// <summary>Loads the knowledge bases embedded in the exe, one per package (kb-B11000SP_2408.json.gz, kb-B110002608HF_1.json.gz, ...).</summary>
 public static class KbLoader
 {
-    /// <summary>Version code of the Login answer to the release whose knowledge base serves it. Only verified releases are listed (ADR 0010).</summary>
-    public static readonly IReadOnlyDictionary<string, string> Releases = new Dictionary<string, string> { ["1000200"] = "2208", ["1000260"] = "2408", ["1000340"] = "2608" };
+    /// <summary>Version code of the Login answer ("1000340") to the release ("2608") of the knowledge bases extracted from files with that file version (10.0.340.0). Derived from the embedded knowledge bases, so every supported package is listed.</summary>
+    public static IReadOnlyDictionary<string, string> Releases(IReadOnlyDictionary<string, KnowledgeBase> kbs)
+    {
+        var r = new Dictionary<string, string>();
+        foreach (var (package, kb) in kbs)
+        {
+            var v = kb.Build?.Files.FirstOrDefault(f => f.Name.Equals("OBServerDLL.dll", StringComparison.OrdinalIgnoreCase))?.FileVersionFixed?.Split('.');
+            if (v is { Length: >= 3 } && int.TryParse(v[0], out var ma) && int.TryParse(v[1], out var mi) && int.TryParse(v[2], out var bu))
+                r.TryAdd($"{ma}{mi:00}{bu:000}", BuildPolicy.ReleaseOf(package));
+        }
+        return r;
+    }
 
-    /// <summary>Release (e.g. "2408") to its knowledge base.</summary>
+    /// <summary>Package (e.g. "B11000SP_2408") to its knowledge base.</summary>
     public static Dictionary<string, KnowledgeBase> Load(ILogger log)
     {
         var all = new Dictionary<string, KnowledgeBase>();
