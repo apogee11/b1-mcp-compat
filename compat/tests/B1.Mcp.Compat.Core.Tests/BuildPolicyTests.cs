@@ -134,7 +134,7 @@ public class BuildPolicyTests
     {
         Assert.Equal(
             "b1-mcp-compat: this Service Layer release or build is not supported: there is no knowledge base for it. " +
-            "Contact the maintainer of this repository and send the output of tools/collect/06-check-build.ps1 (file versions and SHA-256 hashes) so that the knowledge base for your build is generated. " +
+            "Contact the maintainer of this repository and send the output of tools/collect/check-build.ps1 (file versions and SHA-256 hashes) so that the knowledge base for your build is generated. " +
             "To keep working meanwhile with the knowledge base of the same release, without verification, set Compat__AllowUnsupportedBuild=true " +
             "(this does not help for a release that has no knowledge base at all).",
             BuildPolicy.UnsupportedMessage);

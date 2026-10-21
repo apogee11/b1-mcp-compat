@@ -13,7 +13,7 @@ public sealed class CompatOptions
     /// <summary>Release of the Service Layer the connector points to, as declared by the administrator (2208, 2408, 2608; "FP" prefix allowed). Empty: the release of the Login Version.</summary>
     public string Release { get; set; } = "";
 
-    /// <summary>Build of that Service Layer, as printed by tools/collect/06-check-build.ps1 (e.g. 10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194). The Service Layer cannot tell it, so it is declared. Empty: no build declared (treated as an unsupported build).</summary>
+    /// <summary>Build of that Service Layer, as printed by tools/collect/check-build.ps1 (e.g. 10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194). The Service Layer cannot tell it, so it is declared. Empty: no build declared (treated as an unsupported build).</summary>
     public string Build { get; set; } = "";
 
     /// <summary>false (default): a build without knowledge base is an error with a fixed message. true: serve it with the knowledge base of the same release, log a warning, do not claim verification.</summary>

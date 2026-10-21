@@ -19,7 +19,7 @@ public sealed partial class BuildPolicy
     /// <summary>Fixed answer (always the same text) for a release or build without a knowledge base.</summary>
     public const string UnsupportedMessage =
         "b1-mcp-compat: this Service Layer release or build is not supported: there is no knowledge base for it. " +
-        "Contact the maintainer of this repository and send the output of tools/collect/06-check-build.ps1 (file versions and SHA-256 hashes) so that the knowledge base for your build is generated. " +
+        "Contact the maintainer of this repository and send the output of tools/collect/check-build.ps1 (file versions and SHA-256 hashes) so that the knowledge base for your build is generated. " +
         "To keep working meanwhile with the knowledge base of the same release, without verification, set Compat__AllowUnsupportedBuild=true " +
         "(this does not help for a release that has no knowledge base at all).";
 
@@ -52,7 +52,7 @@ public sealed partial class BuildPolicy
         }
         if (!string.IsNullOrWhiteSpace(build))
         {
-            if (!BuildFormat().IsMatch(build.Trim())) throw new InvalidOperationException($"Compat__Build '{build}' is not valid: copy the value printed by tools/collect/06-check-build.ps1, e.g. 10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194.");
+            if (!BuildFormat().IsMatch(build.Trim())) throw new InvalidOperationException($"Compat__Build '{build}' is not valid: copy the value printed by tools/collect/check-build.ps1, e.g. 10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194.");
             Build = build.Trim().ToLowerInvariant();
         }
     }
@@ -77,7 +77,7 @@ public sealed partial class BuildPolicy
 
         // The Login Version must belong to the declared release. Refused always: serving another release's dictionary is wrong in known places.
         if (Release != null && loginRelease != Release)
-            return new BuildDecision(null, $"b1-mcp-compat: the Service Layer reports Version '{loginCode ?? "unknown"}'{(loginRelease != null ? $" (release {loginRelease})" : "")} but Compat__Release is {Release}. Declare the release and build of the installation this connector points to (tools/collect/06-check-build.ps1 prints them).", null, false);
+            return new BuildDecision(null, $"b1-mcp-compat: the Service Layer reports Version '{loginCode ?? "unknown"}'{(loginRelease != null ? $" (release {loginRelease})" : "")} but Compat__Release is {Release}. Declare the release and build of the installation this connector points to (tools/collect/check-build.ps1 prints them).", null, false);
 
         var expected = BuildIdOf(kb);
         if (Build != null && expected != null && Build == expected) return new BuildDecision(release, null, null, true);
