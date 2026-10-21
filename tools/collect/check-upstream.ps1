@@ -1,7 +1,7 @@
 # Checks that an older Service Layer gives the connector what it needs: the user-defined catalog (UDF / UDT / UDO) readable through the
 # Service Layer itself (UserFieldsMD, UserTablesMD, UserObjectsMD), the plain $metadata carrying the user fields, and (optional) OPFS readable.
 # Read-only apart from Login/Logout. Reads field/table/object DEFINITIONS only, no business data.
-#   .\check-upstream.ps1 -SlUrl https://SRVSAP01:50000 -Company SBODEMO -User manager -Tag 2408
+#   .\check-upstream.ps1 -SlUrl https://<servidor-2208>:50000 -Company SBODEMO -User manager -Tag 2408
 # Password: env B1_PASSWORD or interactive prompt. Optional OPFS read: add -SqlServer (Windows identity, or -SqlUser + env B1_SQL_PASSWORD).
 # Output: .\out\check-<Tag>\ (report.md, results.json, raw dumps). Nothing secret is written.
 param(
