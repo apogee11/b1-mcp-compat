@@ -60,16 +60,22 @@ if ($byVersion.Count -eq 0) {
     Write-Host 'Send this output to the maintainer of the repository so the knowledge base for your build is generated (compat/CHECK-YOUR-BUILD.md).'
     exit 2
 }
-$rel = $byVersion[0]
-$relNum = $rel.release -replace '^FP', ''
-$diff = @()
-foreach ($f in $rel.files) {
-    $l = $local[$f.name]
-    if ($null -eq $l) { if ($f.name -in 'OBServerDLL.dll', 'B1_Engine.dll', 'B1_EnginesResources.dll') { $diff += "$($f.name): missing on this server" }; continue }
-    if ($l.Sha -ne $f.sha256) { $diff += "$($f.name): hash differs (server $($l.Sha), covered $($f.sha256))" }
+# A release can have several covered packages (base and hotfixes) with the same file version: the one whose hashes all match wins
+function Get-Diff($b) {
+    $d = @()
+    foreach ($f in $b.files) {
+        $l = $local[$f.name]
+        if ($null -eq $l) { if ($f.name -in 'OBServerDLL.dll', 'B1_Engine.dll', 'B1_EnginesResources.dll') { $d += "$($f.name): missing on this server" }; continue }
+        if ($l.Sha -ne $f.sha256) { $d += "$($f.name): hash differs (server $($l.Sha), covered $($f.sha256))" }
+    }
+    $d
 }
+$rel = $byVersion | Where-Object { @(Get-Diff $_).Count -eq 0 } | Select-Object -First 1
+if (-not $rel) { $rel = $byVersion[0] }
+$relNum = $rel.release -replace '^FP', ''
+$diff = @(Get-Diff $rel)
 if ($diff.Count -eq 0) {
-    Write-Host "`nCOINCIDE (MATCH): this build is the one the knowledge base $($rel.release) was extracted from."
+    Write-Host "`nCOINCIDE (MATCH): this build is the one the knowledge base of $($rel.package) was extracted from."
     Write-Params $relNum
     exit 0
 }
