@@ -10,10 +10,10 @@ The standard dictionary (labels, tables, column sizes and types, enum values) is
 
 You do not generate or compile anything.
 
-1. On the Service Layer server run (read-only, no credentials, no network; copy `tools/collect/06-check-build.ps1` and `docs/covered-builds.json` there, or run it from a clone):
+1. On the Service Layer server run (read-only, no credentials, no network; copy `tools/collect/check-build.ps1` and `docs/covered-builds.json` there, or run it from a clone):
 
    ```powershell
-   .\tools\collect\06-check-build.ps1 -ServiceLayerPath 'C:\Program Files\sap\SAP Business One\ServerTools\ServiceLayer'
+   .\tools\collect\check-build.ps1 -ServiceLayerPath 'C:\Program Files\sap\SAP Business One\ServerTools\ServiceLayer'
    ```
 
    It prints the build id of your Service Layer, compares them with the [covered builds](../docs/covered-builds.md) and ends with the values for the connector:
@@ -39,9 +39,9 @@ You do not generate or compile anything.
 
 The connector answers the metadata requests with HTTP 502 and always the same message:
 
-> b1-mcp-compat: this Service Layer release or build is not supported: there is no knowledge base for it. Contact the maintainer of this repository and send the output of tools/collect/06-check-build.ps1 (file versions and SHA-256 hashes) so that the knowledge base for your build is generated. To keep working meanwhile with the knowledge base of the same release, without verification, set Compat__AllowUnsupportedBuild=true (this does not help for a release that has no knowledge base at all).
+> b1-mcp-compat: this Service Layer release or build is not supported: there is no knowledge base for it. Contact the maintainer of this repository and send the output of tools/collect/check-build.ps1 (file versions and SHA-256 hashes) so that the knowledge base for your build is generated. To keep working meanwhile with the knowledge base of the same release, without verification, set Compat__AllowUnsupportedBuild=true (this does not help for a release that has no knowledge base at all).
 
-- **Contact the maintainer of this repository** and send the output of `06-check-build.ps1`. The maintainer is the only one who generates knowledge bases: they extract the dictionary from the same files, verify it and add the build to the [covered builds](../docs/covered-builds.md).
+- **Contact the maintainer of this repository** and send the output of `check-build.ps1`. The maintainer is the only one who generates knowledge bases: they extract the dictionary from the same files, verify it and add the build to the [covered builds](../docs/covered-builds.md).
 - **Meanwhile**, if your release has a knowledge base (same release, slightly different DLL), you may set `Compat__AllowUnsupportedBuild=true`. The connector then does not fail: it serves the knowledge base of that release and writes a warning to the log (declared build, build of the knowledge base used, "not verified"). The differences are expected to be few, but they are not measured for your patch. If a 502 names a property, your build has it and the knowledge base lacks it. For a release with no knowledge base at all (for example one newer than FP2608) this setting changes nothing: there is nothing to serve.
 
 ## Other errors
