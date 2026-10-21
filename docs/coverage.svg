@@ -1,22 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 280" width="1000" height="280">
 <rect x="0.00" y="0.00" width="1000.00" height="280.00" fill="#0d1117" stroke="#0d1117" stroke-width="0"/>
-<text x="4.00" y="21.00" font-family="sans-serif" font-size="16" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">SAP Business One 10.0 builds*: 45.5% (20/44)</text>
-<g><title>2208: 1/3 - FP2208 (B11000_2208): supported; FP2208 HF1 (B110002208HF1_1): pending; FP2208 HF2 (B110002208HF_2): pending</title>
+<text x="4.00" y="21.00" font-family="sans-serif" font-size="16" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">SAP Business One 10.0 builds*: 90.9% (40/44)</text>
+<g><title>2208: 3/3 - FP2208 (B11000_2208): supported; FP2208 HF1 (B110002208HF1_1): supported; FP2208 HF2 (B110002208HF_2): supported</title>
 <rect x="1.00" y="31.00" width="67.18" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="6.00" y="86.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">FP</text>
-<rect x="68.18" y="31.00" width="67.18" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="68.18" y="31.00" width="67.18" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="73.18" y="86.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
-<rect x="1.00" y="92.50" width="134.36" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="1.00" y="92.50" width="134.36" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="6.00" y="148.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF2</text>
 <rect x="0.00" y="30.00" width="136.36" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="5.00" y="46.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2208</text>
 </g>
-<g><title>2011: 1/3 - FP2011 (B11000_2011): supported; FP2011 HF1 (B1100002011HF_1): pending; FP2011 HF2 (B1100002011HF_2): pending</title>
+<g><title>2011: 3/3 - FP2011 (B11000_2011): supported; FP2011 HF1 (B1100002011HF_1): supported; FP2011 HF2 (B1100002011HF_2): supported</title>
 <rect x="1.00" y="156.00" width="67.18" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="6.00" y="211.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">FP</text>
-<rect x="68.18" y="156.00" width="67.18" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="68.18" y="156.00" width="67.18" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="73.18" y="211.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
-<rect x="1.00" y="217.50" width="134.36" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="1.00" y="217.50" width="134.36" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="6.00" y="273.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF2</text>
 <rect x="0.00" y="155.00" width="136.36" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="5.00" y="171.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2011</text>
@@ -39,120 +39,120 @@
 <rect x="136.36" y="180.00" width="113.64" height="100.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="141.36" y="196.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2605</text>
 </g>
-<g><title>2602: 1/2 - FP2602 (B11000_2602): supported; FP2602 HF1 (B110002602HF_1): pending</title>
+<g><title>2602: 2/2 - FP2602 (B11000_2602): supported; FP2602 HF1 (B110002602HF_1): supported</title>
 <rect x="251.00" y="31.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="256.00" y="86.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">FP</text>
-<rect x="251.00" y="92.50" width="88.91" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="251.00" y="92.50" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="256.00" y="148.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="250.00" y="30.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="255.00" y="46.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2602</text>
 </g>
-<g><title>2511: 1/2 - SP2511 (B11000SP_2511): supported; SP2511 HF1 (B110002511HF_1): pending</title>
+<g><title>2511: 2/2 - SP2511 (B11000SP_2511): supported; SP2511 HF1 (B110002511HF_1): supported</title>
 <rect x="251.00" y="156.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="256.00" y="211.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">SP</text>
-<rect x="251.00" y="217.50" width="88.91" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="251.00" y="217.50" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="256.00" y="273.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="250.00" y="155.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="255.00" y="171.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2511</text>
 </g>
-<g><title>2505: 1/2 - SP2505 (B11000SP_2505): supported; SP2505 HF1 (B110002505HF_1): pending</title>
+<g><title>2505: 2/2 - SP2505 (B11000SP_2505): supported; SP2505 HF1 (B110002505HF_1): supported</title>
 <rect x="341.91" y="31.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="346.91" y="86.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">SP</text>
-<rect x="341.91" y="92.50" width="88.91" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="341.91" y="92.50" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="346.91" y="148.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="340.91" y="30.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="345.91" y="46.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2505</text>
 </g>
-<g><title>2502: 1/2 - FP2502 (B11000_2502): supported; FP2502 HF1 (B110002502HF_1): pending</title>
+<g><title>2502: 2/2 - FP2502 (B11000_2502): supported; FP2502 HF1 (B110002502HF_1): supported</title>
 <rect x="341.91" y="156.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="346.91" y="211.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">FP</text>
-<rect x="341.91" y="217.50" width="88.91" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="341.91" y="217.50" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="346.91" y="273.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="340.91" y="155.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="345.91" y="171.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2502</text>
 </g>
-<g><title>2408: 1/2 - SP2408 (B11000SP_2408): supported; SP2408 HF1 (B110002408HF_1): pending</title>
+<g><title>2408: 2/2 - SP2408 (B11000SP_2408): supported; SP2408 HF1 (B110002408HF_1): supported</title>
 <rect x="432.82" y="31.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="437.82" y="86.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">SP</text>
-<rect x="432.82" y="92.50" width="88.91" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="432.82" y="92.50" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="437.82" y="148.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="431.82" y="30.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="436.82" y="46.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2408</text>
 </g>
-<g><title>2405: 1/2 - FP2405 (B11000_2405): supported; FP2405 HF1 (B110002405HF_1): pending</title>
+<g><title>2405: 2/2 - FP2405 (B11000_2405): supported; FP2405 HF1 (B110002405HF_1): supported</title>
 <rect x="432.82" y="156.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="437.82" y="211.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">FP</text>
-<rect x="432.82" y="217.50" width="88.91" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="432.82" y="217.50" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="437.82" y="273.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="431.82" y="155.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="436.82" y="171.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2405</text>
 </g>
-<g><title>2402: 1/2 - SP2402 (B11000SP_2402): supported; SP2402 HF1 (B110002402HF_1): pending</title>
+<g><title>2402: 2/2 - SP2402 (B11000SP_2402): supported; SP2402 HF1 (B110002402HF_1): supported</title>
 <rect x="523.73" y="31.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="528.73" y="86.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">SP</text>
-<rect x="523.73" y="92.50" width="88.91" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="523.73" y="92.50" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="528.73" y="148.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="522.73" y="30.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="527.73" y="46.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2402</text>
 </g>
-<g><title>2311: 1/2 - SP2311 (B11000SP_2311): supported; SP2311 HF1 (B110002311HF_1): pending</title>
+<g><title>2311: 2/2 - SP2311 (B11000SP_2311): supported; SP2311 HF1 (B110002311HF_1): supported</title>
 <rect x="523.73" y="156.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="528.73" y="211.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">SP</text>
-<rect x="523.73" y="217.50" width="88.91" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="523.73" y="217.50" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="528.73" y="273.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="522.73" y="155.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="527.73" y="171.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2311</text>
 </g>
-<g><title>2308: 0/2 - FP2308 (B11000_2308): pending; SP2308 HF1 (B110002308HF_1): pending</title>
-<rect x="614.64" y="31.00" width="88.91" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<g><title>2308: 2/2 - FP2308 (B11000_2308): supported; SP2308 HF1 (B110002308HF_1): supported</title>
+<rect x="614.64" y="31.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="619.64" y="86.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">FP</text>
-<rect x="614.64" y="92.50" width="88.91" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="614.64" y="92.50" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="619.64" y="148.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="613.64" y="30.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="618.64" y="46.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2308</text>
 </g>
-<g><title>2305: 1/2 - FP2305 (B11000_2305): supported; FP2305 HF1 (B110002305HF_1): pending</title>
+<g><title>2305: 2/2 - FP2305 (B11000_2305): supported; FP2305 HF1 (B110002305HF_1): supported</title>
 <rect x="614.64" y="156.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="619.64" y="211.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">FP</text>
-<rect x="614.64" y="217.50" width="88.91" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="614.64" y="217.50" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="619.64" y="273.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="613.64" y="155.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="618.64" y="171.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2305</text>
 </g>
-<g><title>2202: 1/2 - FP2202 (B11000_2202): supported; FP2202 HF1 (B110002202HF1_1): pending</title>
+<g><title>2202: 2/2 - FP2202 (B11000_2202): supported; FP2202 HF1 (B110002202HF1_1): supported</title>
 <rect x="705.55" y="31.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="710.55" y="86.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">FP</text>
-<rect x="705.55" y="92.50" width="88.91" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="705.55" y="92.50" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="710.55" y="148.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="704.55" y="30.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="709.55" y="46.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2202</text>
 </g>
-<g><title>2111: 1/2 - FP2111 (B11000_2111): supported; FP2111 HF1 (B1100002111HF_1): pending</title>
+<g><title>2111: 2/2 - FP2111 (B11000_2111): supported; FP2111 HF1 (B1100002111HF_1): supported</title>
 <rect x="705.55" y="156.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="710.55" y="211.50" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">FP</text>
-<rect x="705.55" y="217.50" width="88.91" height="61.50" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="705.55" y="217.50" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="710.55" y="273.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="704.55" y="155.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="709.55" y="171.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2111</text>
 </g>
-<g><title>2108: 1/2 - FP2108 (B11000_2108): supported; FP2108 HF1 (B110002108HF1_1): pending</title>
+<g><title>2108: 2/2 - FP2108 (B11000_2108): supported; FP2108 HF1 (B110002108HF1_1): supported</title>
 <rect x="796.45" y="31.00" width="50.14" height="109.11" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="801.45" y="134.11" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">FP</text>
-<rect x="846.59" y="31.00" width="50.14" height="109.11" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="846.59" y="31.00" width="50.14" height="109.11" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="851.59" y="134.11" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="795.45" y="30.00" width="102.27" height="111.11" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="800.45" y="46.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2108</text>
 </g>
-<g><title>2105: 1/2 - FP2105 (B11000_2105): supported; FP2105 HF1 (B110002105HF1_1): pending</title>
+<g><title>2105: 2/2 - FP2105 (B11000_2105): supported; FP2105 HF1 (B110002105HF1_1): supported</title>
 <rect x="898.73" y="31.00" width="50.14" height="109.11" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="903.73" y="134.11" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">FP</text>
-<rect x="948.86" y="31.00" width="50.14" height="109.11" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<rect x="948.86" y="31.00" width="50.14" height="109.11" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="953.86" y="134.11" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="897.73" y="30.00" width="102.27" height="111.11" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="902.73" y="46.00" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2105</text>
 </g>
-<g><title>2008: 0/2 - FP2008 (B11000_2008): pending; FP2008 HF1 (B110002008HF1_1): pending</title>
-<rect x="796.45" y="142.11" width="79.82" height="68.44" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
+<g><title>2008: 1/2 - FP2008 (B11000_2008): supported; FP2008 HF1 (B110002008HF1_1): pending</title>
+<rect x="796.45" y="142.11" width="79.82" height="68.44" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="801.45" y="204.56" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">FP</text>
 <rect x="796.45" y="210.56" width="79.82" height="68.44" fill="#6e7681" stroke="#0d1117" stroke-width="0.5"/>
 <text x="801.45" y="273.00" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
