@@ -48,9 +48,9 @@ The knowledge base never contains anything a customer defined. What it is made o
 
 A version is **verified** only when its dictionary was distilled from that build and the result was checked. The Service Layer cannot say which build it is: the `Login` answer has only `Version` (`1000200` FP2208, `1000260` FP2408, `1000340` FP2608), the same for every patch level. So **the administrator declares the release and the build** with `Compat__Release` and `Compat__Build`, and the connector loads the knowledge base that matches them. Nothing is detected or inferred.
 
-- **Build id**: an opaque value that identifies the exact build, for example `10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194`. `tools/collect/06-check-build.ps1` prints the exact `Compat__Release` and `Compat__Build` to copy; the connector compares the id with the `build` block of each embedded knowledge base ([covered builds](../docs/covered-builds.md)).
+- **Build id**: an opaque value that identifies the exact build, for example `10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194`. `tools/collect/check-build.ps1` prints the exact `Compat__Release` and `Compat__Build` to copy; the connector compares the id with the `build` block of each embedded knowledge base ([covered builds](../docs/covered-builds.md)).
 - **Supported** (declared build equals the build of the knowledge base of the release): served as verified.
-- **Not supported** (build differs or is not declared, or the release has no knowledge base): metadata requests and the personal-data action fail with HTTP 502 and a fixed message that says to generate the knowledge base for that build (contact the maintainer with the output of `06-check-build.ps1`) and names `Compat__AllowUnsupportedBuild`.
+- **Not supported** (build differs or is not declared, or the release has no knowledge base): metadata requests and the personal-data action fail with HTTP 502 and a fixed message that says to generate the knowledge base for that build (contact the maintainer with the output of `check-build.ps1`) and names `Compat__AllowUnsupportedBuild`.
 - **`Compat__AllowUnsupportedBuild=true`**: a build that differs, or is not declared, no longer fails. The connector serves the knowledge base of the declared (or Login) release and logs once a warning with the declared build, the build of the knowledge base used and that it is not verified. A release without any knowledge base is an error whatever this says.
 - **Consistency**: if the `Login` Version does not belong to `Compat__Release`, or `Compat__Build` is the build of another release, the answer is a 502 naming both, always (also with `AllowUnsupportedBuild`): the safe choice is to serve nothing. If `Compat__Release` is empty, the release is that of the `Login` Version.
 - A wrong format of either parameter stops the connector at start. At start the connector logs whether the declaration is supported.
@@ -70,7 +70,7 @@ For a version or a patch level without a knowledge base (or when a 502 shows pro
    .\check-upstream.ps1 -SlUrl https://SLSERVER:50000 -Company YOURCOMPANYDB -User manager -Tag 2502 -SqlServer SQLSERVER -SqlUser sa
    ```
    It must end in `READY`: `UserFieldsMD`, `UserTablesMD` and `UserObjectsMD` readable, their `U_*` fields equal to the plain `$metadata`, and (with `-SqlServer`) `OPFS` readable. Note the version code of the `Login` it prints.
-2. **Run `tools/collect/06-check-build.ps1`** on the Service Layer server ([CHECK-YOUR-BUILD.md](CHECK-YOUR-BUILD.md)) and set the `Compat__Release` and `Compat__Build` it prints. If the result is `DISTINTA` or `NO CUBIERTA`, send its output to the maintainer; meanwhile `Compat__AllowUnsupportedBuild=true` serves the knowledge base of the same release, unverified.
+2. **Run `tools/collect/check-build.ps1`** on the Service Layer server ([CHECK-YOUR-BUILD.md](CHECK-YOUR-BUILD.md)) and set the `Compat__Release` and `Compat__Build` it prints. If the result is `DISTINTA` or `NO CUBIERTA`, send its output to the maintainer; meanwhile `Compat__AllowUnsupportedBuild=true` serves the knowledge base of the same release, unverified.
 
 **Maintainer:**
 
@@ -128,7 +128,7 @@ Environment variables `Compat__Section__Key`; there is no settings file. Every k
 |---|---|---|
 | `Listen` | `https://localhost:50100` | Listener. HTTPS uses a generated self-signed certificate unless `Tls` points to a PFX; `http://…` is allowed on trusted networks |
 | `Release` | empty | Release of the Service Layer, declared: `2208`, `2408` or `2608` (`FP` prefix allowed). Empty: the release of the Login `Version` |
-| `Build` | empty | Build id printed by `tools/collect/06-check-build.ps1`. Empty: not declared, counted as unsupported |
+| `Build` | empty | Build id printed by `tools/collect/check-build.ps1`. Empty: not declared, counted as unsupported |
 | `AllowUnsupportedBuild` | `false` | `false`: a build without knowledge base is a 502 with a fixed message. `true`: serve the knowledge base of the release, with a log warning, not verified |
 | `Upstream:Url` / `SkipTlsVerify` | `https://localhost:50000` / `true` | The Service Layer (they ship self-signed certificates) |
 | `Database:Provider` | `SqlServer` | `SqlServer` or `Hana` (experimental) |
