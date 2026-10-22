@@ -138,6 +138,8 @@ Environment variables `Compat__Section__Key`; there is no settings file. Every k
 | `Database:Password` | empty | SQL password. Prefer `PasswordFile` |
 | `Database:TrustServerCertificate` | `true` | |
 | `Database:ConnectionString` | empty | Advanced: a full connection string replacing the five settings above; `{CompanyDB}` is replaced by the Login's company |
+| `Log:Path` | empty | Folder of the log files (`b1-mcp-compat-<date>.log`, 14 days kept). Empty: next to the exe. Unwritable: the connector does not start |
+| `Log:Level` | `info` | `info` or `error`. JSON lines in the OpenTelemetry log data model, one wide event per request (method, path, status, duration, kind, company, user; never the password), `trace_id` taken from `traceparent` |
 | `Mappings:OverridePath` | `mappings.override.json` | Manual mappings (see below) |
 | `SimulateLegacy` | `false` | Test only: hide the native FP2608 features of the upstream, to check the connector against a native Service Layer |
 

@@ -23,6 +23,7 @@ public sealed class CompatOptions
     public DatabaseOptions Database { get; set; } = new();
     public MappingsOptions Mappings { get; set; } = new();
     public TlsOptions Tls { get; set; } = new();
+    public LogOptions Log { get; set; } = new();
 
     /// <summary>TEST ONLY: make a native FP2608+ Service Layer behave like an older one (annotated $metadata options and the personal data service are hidden from it).</summary>
     public bool SimulateLegacy { get; set; }
@@ -38,6 +39,15 @@ public sealed class CompatOptions
     public sealed class MappingsOptions
     {
         public string OverridePath { get; set; } = "mappings.override.json";
+    }
+
+    public sealed class LogOptions
+    {
+        /// <summary>Folder of the log files. Empty: next to the exe.</summary>
+        public string? Path { get; set; }
+
+        /// <summary>"info" (everything, default) or "error".</summary>
+        public string Level { get; set; } = "info";
     }
 
     public sealed class TlsOptions
