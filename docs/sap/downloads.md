@@ -2,7 +2,7 @@
 
 Source: SAP Software Center, SAP Business One 10.0 installations (46 packages). Each file is `<zip>-70004131.ZIP`, except the SP00 upgrades, which end in `-70004131_P1.ZIP`.
 
-**Supported**: a knowledge base was generated from that exact package; it is served as is. **Verified**: also measured against a real Service Layer of that build ; otherwise `no`. `not planned`: will not be supported. **Build id**: value for `Compat__Build` (see `tools/collect/check-build.ps1`).
+**Supported**: a knowledge base was generated from that exact package; it is served as is. **Verified**: also measured against a real Service Layer of that build ; otherwise `no`. `not planned`: will not be supported. **Build id**: value for `B1McpCompat__Build` (see `tools/collect/check-build.ps1`).
 
 > Versions older than `B11000_2008-70004131.ZIP` (Upgrade 1, Upgrade 2 and Patch 0) will not be supported.
 
