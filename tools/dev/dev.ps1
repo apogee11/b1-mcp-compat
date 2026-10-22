@@ -17,14 +17,14 @@ $secure = Get-Content $file | ConvertTo-SecureString
 $p = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)) | ConvertFrom-Json
 
 $sqlAuth = if ($p.SqlWindowsAuth) { 'Integrated Security=true' } else { "User Id=$($p.SqlUser);Password=$($p.SqlPassword)" }
-$env:Compat__Listen = "http://127.0.0.1:$ConnectorPort"
-$env:Compat__Upstream__Url = $p.SlUrl
-$env:Compat__Database__ConnectionString = "Server=$($p.SqlHost);$sqlAuth;TrustServerCertificate=true;Initial Catalog={CompanyDB}"
-if ($SimulateLegacy) { $env:Compat__SimulateLegacy = 'true' }
+$env:B1McpCompat__Listen = "http://127.0.0.1:$ConnectorPort"
+$env:B1McpCompat__Upstream__Url = $p.SlUrl
+$env:B1McpCompat__Database__ConnectionString = "Server=$($p.SqlHost);$sqlAuth;TrustServerCertificate=true;Initial Catalog={CompanyDB}"
+if ($SimulateLegacy) { $env:B1McpCompat__SimulateLegacy = 'true' }
 # Release/build of the Service Layer are declared, never detected (compat/README.md, 'Versions and builds'). Without them the connector refuses unless -AllowUnsupportedBuild.
-if ($Release) { $env:Compat__Release = $Release }
-if ($Build) { $env:Compat__Build = $Build }
-if ($AllowUnsupportedBuild) { $env:Compat__AllowUnsupportedBuild = 'true' }
+if ($Release) { $env:B1McpCompat__Release = $Release }
+if ($Build) { $env:B1McpCompat__Build = $Build }
+if ($AllowUnsupportedBuild) { $env:B1McpCompat__AllowUnsupportedBuild = 'true' }
 
 $env:NODE_ENV = 'development'; $env:AUTHENTICATION_MODE = 'direct'; $env:PORT = $McpPort; $env:HTTPS_ENABLED = 'false'
 $env:SERVICE_LAYER_ROOT_URL = "http://127.0.0.1:$ConnectorPort"; $env:B1_COMPANY_DB = $p.Company; $env:B1_USERNAME = $p.User; $env:B1_PASSWORD = $p.Password
