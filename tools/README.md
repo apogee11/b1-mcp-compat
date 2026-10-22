@@ -22,7 +22,7 @@ $env:B1_PASSWORD = '<Service Layer password>'
 - Without `-SqlUser` SQL uses the Windows identity of whoever runs the script. A read-only login that can `SELECT` on `OPFS` is enough.
 - The output folder holds the names of user fields, tables and objects and the `OPFS` classification (table and field names only). It contains no business rows, passwords or session ids.
 
-Then, optionally, the end-to-end test (needs the published connector exe, the `b1-mcp-server` folder next to `tools`, Node.js 22+, and internet the first time for `npm install`):
+Then, optionally, the end-to-end test (needs the published connector exe, the `b1-mcp-server` folder next to `tools`, already built by you with `npm install --legacy-peer-deps` and `npm run build`, and Node.js 22+):
 ```powershell
 cd tools\e2e
 .\e2e.ps1 -SlUrl https://SLSERVER:50000 -Company YOURCOMPANYDB -User manager -Exe ..\..\compat\publish\B1.Mcp.Compat.Host.exe
