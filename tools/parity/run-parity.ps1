@@ -44,11 +44,11 @@ function Wait-Http([string]$Url, [int]$Seconds = 40) {
 }
 try {
   # 1. the .NET connector (HTTP on loopback, simulating a legacy Service Layer)
-  $env:B1McpCompat__Listen = "http://127.0.0.1:$CompatPort"; $env:B1McpCompat__SimulateLegacy = 'true'; $env:B1McpCompat__Upstream__Url = $SlUrl; $env:B1McpCompat__Release = '2608'; $env:B1McpCompat__Build = '10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194'
+  $env:B1McpCompat__Listen = "http://127.0.0.1:$CompatPort"; $env:B1McpCompat__SimulateLegacy = 'true'; $env:B1McpCompat__ServiceLayer__Url = $SlUrl; $env:B1McpCompat__Release = '2608'; $env:B1McpCompat__Build = '10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194'
   if ($Exe) { $p = Start-Process -FilePath $Exe -WorkingDirectory (Split-Path $Exe) -RedirectStandardOutput "$OutDir\compat.log" -RedirectStandardError "$OutDir\compat.err.log" -WindowStyle Hidden -PassThru }
   else { $p = Start-Process -FilePath dotnet -ArgumentList @('run', '-c', 'Release', '--project', (Join-Path $compatDir 'src\B1.Mcp.Compat.Host')) -RedirectStandardOutput "$OutDir\compat.log" -RedirectStandardError "$OutDir\compat.err.log" -WindowStyle Hidden -PassThru }
   $procs += $p
-  Remove-Item Env:B1McpCompat__Listen, Env:B1McpCompat__SimulateLegacy, Env:B1McpCompat__Upstream__Url, Env:B1McpCompat__Release, Env:B1McpCompat__Build -ErrorAction SilentlyContinue
+  Remove-Item Env:B1McpCompat__Listen, Env:B1McpCompat__SimulateLegacy, Env:B1McpCompat__ServiceLayer__Url, Env:B1McpCompat__Release, Env:B1McpCompat__Build -ErrorAction SilentlyContinue
 
   # 2. two MCP servers
   $mcpEnv = @{ NODE_ENV = 'development'; AUTHENTICATION_MODE = 'direct'; HTTPS_ENABLED = 'false'; AUTH_ALLOW_SELF_SIGNED = 'true';

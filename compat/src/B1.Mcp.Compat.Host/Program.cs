@@ -49,7 +49,7 @@ static async Task<int> Serve(string[] args)
         };
         k.Listen(ip, listen.Port, lo =>
         {
-            if (listen.Scheme == Uri.UriSchemeHttps) lo.UseHttps(SelfSigned.Create(options.Tls));
+            if (listen.Scheme == Uri.UriSchemeHttps) lo.UseHttps(TlsCertificate.Load(options.Tls));
             lo.Protocols = HttpProtocols.Http1;
         });
     });
@@ -75,7 +75,7 @@ static async Task<int> Serve(string[] args)
     else log.LogWarning("B1McpCompat__Release is not set: the release is taken from the Login Version and the build is {Build}.", policy.Build ?? "not declared");
     var proxy = new ProxyEndpoint(options, Http.CreateUpstreamClient(options), kbs, overrides, db, policy, log);
     log.LogInformation("b1-mcp-compat on {Listen} -> {Upstream} (db provider {Provider}, knowledge bases {Kbs}{Sim})",
-        options.Listen, options.Upstream.Url, options.Database.Provider, string.Join(", ", kbs.Keys.Order()), options.SimulateLegacy ? ", SIMULATE LEGACY" : "");
+        options.Listen, options.ServiceLayer.Url, options.Database.Provider, string.Join(", ", kbs.Keys.Order()), options.SimulateLegacy ? ", SIMULATE LEGACY" : "");
     if (listen.Scheme == Uri.UriSchemeHttp) log.LogWarning("Serving plain HTTP. The Service Layer session cookie travels unprotected: use only on a trusted loopback/LAN.");
 
     app.Run(proxy.HandleAsync);

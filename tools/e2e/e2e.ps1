@@ -2,6 +2,7 @@
 # Needs Node.js 22+ and an already built b1-mcp-server (npm install + npm run build, done by you) on the machine that runs it; the SL and SQL can be elsewhere.
 # The connector is the self-contained exe (-Exe) or, from a source checkout, `dotnet run`.
 #   .\e2e.ps1 -SlUrl https://server:50000 -Company SBODEMO -User manager -Exe ..\..\compat\publish\B1.Mcp.Compat.Host.exe
+# For an installation whose services are already running (the README's step 6), use check-installed.ps1 instead.
 # -Release / -Build: release (2608) and build id printed by tools\collect\check-build.ps1; the Service Layer cannot tell them. -AllowUnsupportedBuild: use the release's knowledge base for a build without one (not verified).
 # Database: Integrated Security by default. For a SQL login pass -SqlConnection 'Server=HOST;User Id=..;Password=..;TrustServerCertificate=true;Initial Catalog={CompanyDB}'
 param(
@@ -22,7 +23,7 @@ $hadPassword = [bool]$env:B1_PASSWORD   # only clean up what this script set
 $pw = Get-PlainPassword 'B1_PASSWORD' "Service Layer password for $User"
 $procs = @()
 try {
-  $env:B1McpCompat__Listen = "http://127.0.0.1:$ConnectorPort"; $env:B1McpCompat__Upstream__Url = $SlUrl
+  $env:B1McpCompat__Listen = "http://127.0.0.1:$ConnectorPort"; $env:B1McpCompat__ServiceLayer__Url = $SlUrl
   if ($Release) { $env:B1McpCompat__Release = $Release }; if ($Build) { $env:B1McpCompat__Build = $Build }; if ($AllowUnsupportedBuild) { $env:B1McpCompat__AllowUnsupportedBuild = 'true' }
   if ($SqlConnection) { $env:B1McpCompat__Database__ConnectionString = $SqlConnection }
   if ($Exe) { $procs += Start-Process $Exe -WorkingDirectory (Split-Path (Resolve-Path $Exe)) -RedirectStandardOutput "$OutDir\connector.log" -RedirectStandardError "$OutDir\connector.err.log" -WindowStyle Hidden -PassThru }
@@ -44,7 +45,7 @@ try {
 } finally {
   $procs | ForEach-Object { try { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue } catch {} }
   if (-not $hadPassword) { Remove-Item Env:B1_PASSWORD -ErrorAction SilentlyContinue }
-  foreach ($n in 'MCP_RATE_LIMIT_MAX', 'B1_USERNAME', 'B1_COMPANY_DB', 'SERVICE_LAYER_ROOT_URL', 'B1McpCompat__Listen', 'B1McpCompat__Upstream__Url', 'B1McpCompat__Database__ConnectionString', 'B1McpCompat__Release', 'B1McpCompat__Build', 'B1McpCompat__AllowUnsupportedBuild') { Remove-Item "Env:$n" -ErrorAction SilentlyContinue }
+  foreach ($n in 'MCP_RATE_LIMIT_MAX', 'B1_USERNAME', 'B1_COMPANY_DB', 'SERVICE_LAYER_ROOT_URL', 'B1McpCompat__Listen', 'B1McpCompat__ServiceLayer__Url', 'B1McpCompat__Database__ConnectionString', 'B1McpCompat__Release', 'B1McpCompat__Build', 'B1McpCompat__AllowUnsupportedBuild') { Remove-Item "Env:$n" -ErrorAction SilentlyContinue }
 }
 Write-Host "`nLogs and report: $OutDir  (connector.log shows what was synthesized)"
 exit $code

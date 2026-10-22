@@ -18,7 +18,7 @@ $p = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices
 
 $sqlAuth = if ($p.SqlWindowsAuth) { 'Integrated Security=true' } else { "User Id=$($p.SqlUser);Password=$($p.SqlPassword)" }
 $env:B1McpCompat__Listen = "http://127.0.0.1:$ConnectorPort"
-$env:B1McpCompat__Upstream__Url = $p.SlUrl
+$env:B1McpCompat__ServiceLayer__Url = $p.SlUrl
 $env:B1McpCompat__Database__ConnectionString = "Server=$($p.SqlHost);$sqlAuth;TrustServerCertificate=true;Initial Catalog={CompanyDB}"
 if ($SimulateLegacy) { $env:B1McpCompat__SimulateLegacy = 'true' }
 # Release/build of the Service Layer are declared, never detected (compat/README.md, 'Versions and builds'). Without them the connector refuses unless -AllowUnsupportedBuild.

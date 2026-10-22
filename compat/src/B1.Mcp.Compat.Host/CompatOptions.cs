@@ -2,13 +2,13 @@ using B1.Mcp.Compat.Core.Config;
 
 namespace B1.Mcp.Compat.Host;
 
-/// <summary>Configuration section "Compat", read from environment variables (B1McpCompat__Upstream__Url, ...) and command-line arguments. There is no settings file.</summary>
+/// <summary>Configuration section "Compat", read from environment variables (B1McpCompat__ServiceLayer__Url, ...) and command-line arguments. There is no settings file.</summary>
 public sealed class CompatOptions
 {
     public const string Section = "B1McpCompat";
 
-    /// <summary>Where the connector listens. https:// uses the certificate below or an auto-generated self-signed one.</summary>
-    public string Listen { get; set; } = "https://localhost:50100";
+    /// <summary>Where the connector listens. https:// requires the PFX certificate below, provided by the administrator.</summary>
+    public string Listen { get; set; } = "http://127.0.0.1:50300";
 
     /// <summary>Release of the Service Layer the connector points to, as declared by the administrator (2208, 2408, 2608; "FP" prefix allowed). Empty: the release of the Login Version.</summary>
     public string Release { get; set; } = "";
@@ -19,7 +19,7 @@ public sealed class CompatOptions
     /// <summary>false (default): a build without knowledge base is an error with a fixed message. true: serve it with the knowledge base of the same release, log a warning, do not claim verification.</summary>
     public bool AllowUnsupportedBuild { get; set; }
 
-    public UpstreamOptions Upstream { get; set; } = new();
+    public ServiceLayerOptions ServiceLayer { get; set; } = new();
     public DatabaseOptions Database { get; set; } = new();
     public MappingsOptions Mappings { get; set; } = new();
     public TlsOptions Tls { get; set; } = new();
@@ -28,7 +28,7 @@ public sealed class CompatOptions
     /// <summary>TEST ONLY: make a native FP2608+ Service Layer behave like an older one (annotated $metadata options and the personal data service are hidden from it).</summary>
     public bool SimulateLegacy { get; set; }
 
-    public sealed class UpstreamOptions
+    public sealed class ServiceLayerOptions
     {
         public string Url { get; set; } = "https://localhost:50000";
 
@@ -55,7 +55,7 @@ public sealed class CompatOptions
 
     public sealed class TlsOptions
     {
-        /// <summary>PFX file for https. If it does not exist a self-signed certificate is generated and saved there; if empty an in-memory self-signed certificate is created at each start.</summary>
+        /// <summary>PFX file for https (required when Listen is https://). The connector never generates a certificate.</summary>
         public string? CertificatePath { get; set; }
 
         public string? CertificatePassword { get; set; }
