@@ -37,6 +37,8 @@ Thumbs.db
 
 # rea/ es un repositorio independiente
 /rea/
+# rea/data tiene su propio repositorio (re-b1-mcp-servicelayer)
+/rea/data/
 
 # Python bytecode
 __pycache__/
