@@ -1,6 +1,6 @@
 # B1.Mcp.Compat
 
-HTTP connector (.NET 10) that sits between SAP's **b1-mcp-server** and a Service Layer older than 10.0 FP2608, so the MCP server works unmodified. Against an FP2608+ Service Layer it is transparent.
+Interoperability layer (HTTP connector, .NET 10) that sits between SAP's **b1-mcp-server** and a Service Layer older than 10.0 FP2608, so the MCP server works unmodified. Against an FP2608+ Service Layer it is transparent.
 
 ```mermaid
 flowchart LR
@@ -30,7 +30,7 @@ The part of the annotation that is SAP-standard (what is behind `BusinessPartner
 
 ### Where it comes from
 
-Data comes from per-build compatibility profiles produced by distillation. A version is *verified* when its profile was checked against that exact build.
+Data comes from per-build compatibility profiles produced by interface mapping. A version is *verified* when its profile was checked against that exact build.
 
 ## Where the knowledge lives
 
@@ -46,7 +46,7 @@ The knowledge base never contains anything a customer defined. What it is made o
 
 ### Versions and builds
 
-A version is **verified** only when its dictionary was distilled from that build and the result was checked. The Service Layer cannot say which build it is: the `Login` answer has only `Version` (`1000200` FP2208, `1000260` FP2408, `1000340` FP2608), the same for every patch level. So **the administrator declares the release and the build** with `B1McpCompat__Release` and `B1McpCompat__Build`, and the connector loads the knowledge base that matches them. Nothing is detected or inferred.
+A version is **verified** only when its dictionary was mapped from that build and the result was checked. The Service Layer cannot say which build it is: the `Login` answer has only `Version` (`1000200` FP2208, `1000260` FP2408, `1000340` FP2608), the same for every patch level. So **the administrator declares the release and the build** with `B1McpCompat__Release` and `B1McpCompat__Build`, and the connector loads the knowledge base that matches them. Nothing is detected or inferred.
 
 - **Build id**: an opaque value that identifies the exact build, for example `10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194`. `tools/collect/check-build.ps1` prints the exact `B1McpCompat__Release` and `B1McpCompat__Build` to copy; the connector compares the id with the `build` block of each embedded knowledge base ([covered builds](../docs/supported-builds.md)).
 - **Supported** (declared build equals the build of the knowledge base of the release): served as verified.

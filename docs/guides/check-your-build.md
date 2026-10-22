@@ -4,7 +4,7 @@ The connector's compatibility is declared as **release + exact build**, for exam
 
 ## Why it matters
 
-The standard dictionary (labels, tables, column sizes and types, enum values) is distilled from one specific build. Between two releases 0.2 to 0.8 % of the columns they share change and thousands are added. A patch inside a release can change the dictionary too. A wrong size, label or type reaches the AI as a wrong annotation, so the connector serves only builds it has a knowledge base for, unless you tell it otherwise.
+The standard dictionary (labels, tables, column sizes and types, enum values) is mapped from one specific build. Between two releases 0.2 to 0.8 % of the columns they share change and thousands are added. A patch inside a release can change the dictionary too. A wrong size, label or type reaches the AI as a wrong annotation, so the connector serves only builds it has a knowledge base for, unless you tell it otherwise.
 
 ## Steps (IT manager)
 
@@ -42,7 +42,7 @@ The connector answers the metadata requests with HTTP 502 and always the same me
 > b1-mcp-compat: this Service Layer release or build is not supported: there is no knowledge base for it. Contact the maintainer of this repository and send the output of tools/collect/check-build.ps1 (file versions and SHA-256 hashes) so that the knowledge base for your build is generated. To keep working meanwhile with the knowledge base of the same release, without verification, set B1McpCompat__AllowUnsupportedBuild=true (this does not help for a release that has no knowledge base at all).
 
 - **Contact the maintainer of this repository** and send the output of `check-build.ps1`. The maintainer is the only one who generates knowledge bases: they extract the dictionary from the same files, verify it and add the build to the [covered builds](../supported-builds.md).
-- **Meanwhile**, if your release has a knowledge base (same release, slightly different DLL), you may set `B1McpCompat__AllowUnsupportedBuild=true`. The connector then does not fail: it serves the knowledge base of that release and writes a warning to the log (declared build, build of the knowledge base used, "not verified"). The differences are expected to be few, but they are not measured for your patch. If a 502 names a property, your build has it and the knowledge base lacks it. For a release with no knowledge base at all (for example one newer than FP2608) this setting changes nothing: there is nothing to serve.
+- **Meanwhile**, if your release has a knowledge base (same release, slightly different build), you may set `B1McpCompat__AllowUnsupportedBuild=true`. The connector then does not fail: it serves the knowledge base of that release and writes a warning to the log (declared build, build of the knowledge base used, "not verified"). The differences are expected to be few, but they are not measured for your patch. If a 502 names a property, your build has it and the knowledge base lacks it. For a release with no knowledge base at all (for example one newer than FP2608) this setting changes nothing: there is nothing to serve.
 
 ## Other errors
 
