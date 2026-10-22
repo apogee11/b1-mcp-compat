@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace B1.Mcp.Compat.Host;
 
-/// <summary>Wires the log file (Compat__Log__Path, Compat__Log__Level). Two levels only: info (everything) and error.</summary>
+/// <summary>Wires the log file (B1McpCompat__Log__Path, B1McpCompat__Log__Level). Two levels only: info (everything) and error.</summary>
 public static class LogSetup
 {
     public static void Configure(ILoggingBuilder logging, CompatOptions.LogOptions o)
@@ -14,7 +14,7 @@ public static class LogSetup
         {
             "info" => LogLevel.Information,
             "error" => LogLevel.Error,
-            _ => throw new InvalidOperationException($"Compat__Log__Level '{o.Level}' is not valid: use 'info' or 'error'."),
+            _ => throw new InvalidOperationException($"B1McpCompat__Log__Level '{o.Level}' is not valid: use 'info' or 'error'."),
         };
         var dir = string.IsNullOrWhiteSpace(o.Path) ? AppContext.BaseDirectory : CompatOptions.Resolve(o.Path);
         try
@@ -24,10 +24,12 @@ public static class LogSetup
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
         {
-            throw new InvalidOperationException($"Compat__Log__Path '{dir}' cannot be written: {e.Message}");
+            throw new InvalidOperationException($"B1McpCompat__Log__Path '{dir}' cannot be written: {e.Message}");
         }
+        if (o.RetainDays < 1)
+            throw new InvalidOperationException($"B1McpCompat__Log__RetainDays {o.RetainDays} is not valid: use 1 or more.");
         logging.SetMinimumLevel(level);
-        logging.AddProvider(new FileLoggerProvider(dir));
+        logging.AddProvider(new FileLoggerProvider(dir, o.RetainDays));
     }
 }
 
@@ -37,15 +39,19 @@ public static class LogSetup
 /// </summary>
 public sealed class FileLoggerProvider : ILoggerProvider
 {
-    private const int RetainDays = 14;
     private const string Prefix = "b1-mcp-compat-";
     private readonly string _dir;
+    private readonly int _retainDays;
     private readonly string _version = typeof(CompatOptions).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0";
     private readonly object _lock = new();
     private StreamWriter? _writer;
     private DateOnly _day;
 
-    public FileLoggerProvider(string dir) => _dir = dir;
+    public FileLoggerProvider(string dir, int retainDays)
+    {
+        _dir = dir;
+        _retainDays = retainDays;
+    }
 
     public ILogger CreateLogger(string categoryName) => new FileLogger(this, categoryName);
 
@@ -135,7 +141,7 @@ public sealed class FileLoggerProvider : ILoggerProvider
         try
         {
             foreach (var f in Directory.EnumerateFiles(_dir, Prefix + "*.log"))
-                if (File.GetLastWriteTime(f) < DateTime.Now.AddDays(-RetainDays)) File.Delete(f);
+                if (File.GetLastWriteTime(f) < DateTime.Now.AddDays(-_retainDays)) File.Delete(f);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* retention is best effort */ }
     }

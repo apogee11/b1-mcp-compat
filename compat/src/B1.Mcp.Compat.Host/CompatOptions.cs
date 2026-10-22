@@ -2,10 +2,10 @@ using B1.Mcp.Compat.Core.Config;
 
 namespace B1.Mcp.Compat.Host;
 
-/// <summary>Configuration section "Compat", read from environment variables (Compat__Upstream__Url, ...) and command-line arguments. There is no settings file.</summary>
+/// <summary>Configuration section "Compat", read from environment variables (B1McpCompat__Upstream__Url, ...) and command-line arguments. There is no settings file.</summary>
 public sealed class CompatOptions
 {
-    public const string Section = "Compat";
+    public const string Section = "B1McpCompat";
 
     /// <summary>Where the connector listens. https:// uses the certificate below or an auto-generated self-signed one.</summary>
     public string Listen { get; set; } = "https://localhost:50100";
@@ -48,6 +48,9 @@ public sealed class CompatOptions
 
         /// <summary>"info" (everything, default) or "error".</summary>
         public string Level { get; set; } = "info";
+
+        /// <summary>Days a daily log file is kept before it is deleted.</summary>
+        public int RetainDays { get; set; } = 14;
     }
 
     public sealed class TlsOptions

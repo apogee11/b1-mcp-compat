@@ -10,8 +10,8 @@ public sealed record BuildDecision(string? Release, string? Error, string? Warni
 }
 
 /// <summary>
-/// Which knowledge base serves a session. Nothing is detected: the administrator declares the release (Compat:Release) and the
-/// build (Compat:Build) of the Service Layer, and the connector only compares those declarations with what each knowledge base
+/// Which knowledge base serves a session. Nothing is detected: the administrator declares the release (B1McpCompat:Release) and the
+/// build (B1McpCompat:Build) of the Service Layer, and the connector only compares those declarations with what each knowledge base
 /// was extracted from (rea/09: no heuristic; ADR 0010).
 /// </summary>
 public sealed partial class BuildPolicy
@@ -20,7 +20,7 @@ public sealed partial class BuildPolicy
     public const string UnsupportedMessage =
         "b1-mcp-compat: this Service Layer release or build is not supported: there is no knowledge base for it. " +
         "Contact the maintainer of this repository and send the output of tools/collect/check-build.ps1 (file versions and SHA-256 hashes) so that the knowledge base for your build is generated. " +
-        "To keep working meanwhile with the knowledge base of the same release, without verification, set Compat__AllowUnsupportedBuild=true " +
+        "To keep working meanwhile with the knowledge base of the same release, without verification, set B1McpCompat__AllowUnsupportedBuild=true " +
         "(this does not help for a release that has no knowledge base at all).";
 
     [GeneratedRegex(@"^(?:FP)?(\d{4})$", RegexOptions.IgnoreCase)] private static partial Regex ReleaseFormat();
@@ -47,12 +47,12 @@ public sealed partial class BuildPolicy
         if (!string.IsNullOrWhiteSpace(release))
         {
             var m = ReleaseFormat().Match(release.Trim());
-            if (!m.Success) throw new InvalidOperationException($"Compat__Release '{release}' is not valid: use the four digits of the release, e.g. 2608 (or FP2608).");
+            if (!m.Success) throw new InvalidOperationException($"B1McpCompat__Release '{release}' is not valid: use the four digits of the release, e.g. 2608 (or FP2608).");
             Release = m.Groups[1].Value;
         }
         if (!string.IsNullOrWhiteSpace(build))
         {
-            if (!BuildFormat().IsMatch(build.Trim())) throw new InvalidOperationException($"Compat__Build '{build}' is not valid: copy the value printed by tools/collect/check-build.ps1, e.g. 10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194.");
+            if (!BuildFormat().IsMatch(build.Trim())) throw new InvalidOperationException($"B1McpCompat__Build '{build}' is not valid: copy the value printed by tools/collect/check-build.ps1, e.g. 10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194.");
             Build = build.Trim().ToLowerInvariant();
         }
     }
@@ -83,7 +83,7 @@ public sealed partial class BuildPolicy
 
         // The Login Version must belong to the declared release. Refused always: serving another release's dictionary is wrong in known places.
         if (Release != null && loginRelease != Release)
-            return new BuildDecision(null, $"b1-mcp-compat: the Service Layer reports Version '{loginCode ?? "unknown"}'{(loginRelease != null ? $" (release {loginRelease})" : "")} but Compat__Release is {Release}. Declare the release and build of the installation this connector points to (tools/collect/check-build.ps1 prints them).", null, false);
+            return new BuildDecision(null, $"b1-mcp-compat: the Service Layer reports Version '{loginCode ?? "unknown"}'{(loginRelease != null ? $" (release {loginRelease})" : "")} but B1McpCompat__Release is {Release}. Declare the release and build of the installation this connector points to (tools/collect/check-build.ps1 prints them).", null, false);
 
         // Exact build: the package whose files are the ones declared (a hotfix is its own package).
         if (Build != null)
@@ -95,12 +95,12 @@ public sealed partial class BuildPolicy
         // A build declared for another release's knowledge base is a contradiction, not a patch: never served.
         var other = Build == null ? null : _kbs.FirstOrDefault(k => ReleaseOf(k.Key) != release && BuildIdOf(k.Value) == Build).Key;
         if (other != null)
-            return new BuildDecision(null, $"b1-mcp-compat: Compat__Build {Build} belongs to release {ReleaseOf(other)} but Compat__Release / the Login Version is {release}. Fix the declaration.", null, false);
+            return new BuildDecision(null, $"b1-mcp-compat: B1McpCompat__Build {Build} belongs to release {ReleaseOf(other)} but B1McpCompat__Release / the Login Version is {release}. Fix the declaration.", null, false);
 
         if (!_allow) return new BuildDecision(null, UnsupportedMessage, null, false);
         var (key, kb) = candidates[0];
         return new BuildDecision(key, null,
             $"Unsupported build served with the knowledge base {key}: declared build {(Build ?? "(none declared)")}, knowledge base build {BuildIdOf(kb) ?? "(no fingerprint)"}. " +
-            "This build is NOT supported; annotations can be wrong where the build's dictionary differs. Compat__AllowUnsupportedBuild=true is set.", false);
+            "This build is NOT supported; annotations can be wrong where the build's dictionary differs. B1McpCompat__AllowUnsupportedBuild=true is set.", false);
     }
 }

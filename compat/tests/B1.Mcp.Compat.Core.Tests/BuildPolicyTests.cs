@@ -124,7 +124,7 @@ public class BuildPolicyTests
     {
         var d = P("2608", Good2608, allow).Resolve("1000260");
         Assert.False(d.Ok);
-        Assert.Contains("Compat__Release is 2608", d.Error);
+        Assert.Contains("B1McpCompat__Release is 2608", d.Error);
         Assert.NotEqual(BuildPolicy.UnsupportedMessage, d.Error);
         Assert.False(P("2608", Good2608, allow).Resolve("1000999").Ok);
         Assert.False(P("2608", Good2608, allow).Resolve(null).Ok);
@@ -144,7 +144,7 @@ public class BuildPolicyTests
         Assert.Equal(
             "b1-mcp-compat: this Service Layer release or build is not supported: there is no knowledge base for it. " +
             "Contact the maintainer of this repository and send the output of tools/collect/check-build.ps1 (file versions and SHA-256 hashes) so that the knowledge base for your build is generated. " +
-            "To keep working meanwhile with the knowledge base of the same release, without verification, set Compat__AllowUnsupportedBuild=true " +
+            "To keep working meanwhile with the knowledge base of the same release, without verification, set B1McpCompat__AllowUnsupportedBuild=true " +
             "(this does not help for a release that has no knowledge base at all).",
             BuildPolicy.UnsupportedMessage);
     }

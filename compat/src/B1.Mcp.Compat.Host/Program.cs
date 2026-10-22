@@ -72,7 +72,7 @@ static async Task<int> Serve(string[] args)
         else if (pre.Warning != null) log.LogWarning("{Msg}", pre.Warning);
         else log.LogInformation("Declared release FP{Release} and build {Build} match the knowledge base of package {Package}.", policy.Release, policy.Build, pre.Release);
     }
-    else log.LogWarning("Compat__Release is not set: the release is taken from the Login Version and the build is {Build}.", policy.Build ?? "not declared");
+    else log.LogWarning("B1McpCompat__Release is not set: the release is taken from the Login Version and the build is {Build}.", policy.Build ?? "not declared");
     var proxy = new ProxyEndpoint(options, Http.CreateUpstreamClient(options), kbs, overrides, db, policy, log);
     log.LogInformation("b1-mcp-compat on {Listen} -> {Upstream} (db provider {Provider}, knowledge bases {Kbs}{Sim})",
         options.Listen, options.Upstream.Url, options.Database.Provider, string.Join(", ", kbs.Keys.Order()), options.SimulateLegacy ? ", SIMULATE LEGACY" : "");

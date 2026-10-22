@@ -14,10 +14,8 @@ public sealed partial class SqlServerCompanyDatabase : ICompanyDatabase
     {
         _options = options;
         if (options.ConnectionString != "" || options.User == "") return;
-        if (options.PasswordFile == "" && options.Password == "")
-            throw new InvalidOperationException("Compat:Database:User is set but there is no password: set Compat:Database:PasswordFile (preferred) or Compat:Database:Password.");
-        if (options.PasswordFile != "" && !File.Exists(options.PasswordFile))
-            throw new InvalidOperationException($"Compat:Database:PasswordFile '{options.PasswordFile}' does not exist.");
+        if (options.Password == "")
+            throw new InvalidOperationException("B1McpCompat:Database:User is set but there is no password: set B1McpCompat:Database:Password.");
     }
 
     [GeneratedRegex(@"^[A-Za-z0-9_\-\.\$#@ ]{1,128}$")]
@@ -45,7 +43,7 @@ public sealed partial class SqlServerCompanyDatabase : ICompanyDatabase
         else
         {
             b.UserID = _options.User;
-            b.Password = _options.PasswordFile != "" ? File.ReadAllText(_options.PasswordFile).TrimEnd('\r', '\n') : _options.Password;
+            b.Password = _options.Password;
         }
         return b.ConnectionString;
     }
