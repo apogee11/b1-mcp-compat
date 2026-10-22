@@ -1,16 +1,18 @@
 # Runs the connector and the MCP server from source, each in its own window, restarting on every code change.
 #   .\dev.ps1                          # profile "default", both
 #   .\dev.ps1 -Name cliente2208 -Only compat
+#   .\dev.ps1 -SkipMcp                # connector only, for partners with their own MCP server
 #   .\dev.ps1 -SimulateLegacy          # make a native FP2608 behave as a legacy one
 # Ctrl+C here stops everything. Connector: http://127.0.0.1:50300  MCP server: http://localhost:3100/mcp
-param([string]$Name = 'default', [ValidateSet('both', 'compat', 'mcp')][string]$Only = 'both', [switch]$SimulateLegacy, [string]$Release, [string]$Build, [switch]$AllowUnsupportedBuild,
+param([string]$Name = 'default', [ValidateSet('both', 'compat', 'mcp')][string]$Only = 'both', [switch]$SkipMcp, [switch]$SimulateLegacy, [string]$Release, [string]$Build, [switch]$AllowUnsupportedBuild,
       [int]$ConnectorPort = 50300, [int]$McpPort = 3100)
 $ErrorActionPreference = 'Stop'
+if ($SkipMcp) { $Only = 'compat' }
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $mcpDir = Join-Path $root 'b1-mcp-server'
 if ($Only -ne 'compat' -and -not (Test-Path (Join-Path $mcpDir 'package.json'))) { throw "b1-mcp-server/ not found at the repo root. Download SAP's MCP server (or your variant) and put it there; see README, 'Get the MCP server'." }
 $file = Join-Path $root ".dev\$Name.profile"
-if (-not (Test-Path $file)) { throw "No profile '$Name'. Run tools\dev\setup.ps1 -Name $Name first." }
+if (-not (Test-Path $file)) { throw "No profile '$Name'. Run tools\dev\set-credentials.ps1 -Name $Name first." }
 $secure = Get-Content $file | ConvertTo-SecureString
 $p = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)) | ConvertFrom-Json
 

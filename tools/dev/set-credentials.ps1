@@ -1,7 +1,7 @@
 # Saves the connection details of one installation, encrypted for your Windows user, in .dev\<Name>.profile (ignored by git).
 # Running it again asks everything from scratch and overwrites that profile.
-#   .\setup.ps1                 # profile "default"
-#   .\setup.ps1 -Name cliente2208
+#   .\set-credentials.ps1                 # profile "default"
+#   .\set-credentials.ps1 -Name cliente2208
 param([string]$Name = 'default')
 $ErrorActionPreference = 'Stop'
 function Ask($q, $def = '') { $a = Read-Host $(if ($def) { "$q [$def]" } else { $q }); if ($a) { $a } else { $def } }
