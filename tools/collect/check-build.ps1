@@ -57,7 +57,7 @@ $byVersion = @($covered | Where-Object { ($_.files | Where-Object { $_.name -eq 
 if ($byVersion.Count -eq 0) {
     Write-Host "`nNO CUBIERTA (NOT COVERED): file version $($obs.Version) is not in the table ($(($covered | ForEach-Object release) -join ', '))."
     Write-Params $null
-    Write-Host 'Send this output to the maintainer of the repository so the knowledge base for your build is generated (compat/CHECK-YOUR-BUILD.md).'
+    Write-Host 'Send this output to the maintainer of the repository so the knowledge base for your build is generated (docs/guides/check-your-build.md).'
     exit 2
 }
 # A release can have several covered packages (base and hotfixes) with the same file version: the one whose hashes all match wins
@@ -82,5 +82,5 @@ if ($diff.Count -eq 0) {
 Write-Host "`nDISTINTA (DIFFERENT): same file version as $($rel.release) but not the same files (another patch level)."
 $diff | ForEach-Object { Write-Host "  - $_" }
 Write-Params $relNum
-Write-Host 'This build has no knowledge base. Send this output to the maintainer (compat/CHECK-YOUR-BUILD.md); until then the connector refuses it unless B1McpCompat__AllowUnsupportedBuild=true.'
+Write-Host 'This build has no knowledge base. Send this output to the maintainer (docs/guides/check-your-build.md); until then the connector refuses it unless B1McpCompat__AllowUnsupportedBuild=true.'
 exit 1
