@@ -63,8 +63,8 @@ def main():
     env = load_env(); sl = env['B1_SL_URL'].rstrip('/'); proc = None
     if '--no-start' not in sys.argv:
         exe = next(iter(sorted((ROOT / 'compat/src/B1.Mcp.Compat.Host/bin/Release').rglob('B1.Mcp.Compat.Host.exe'), key=lambda p: p.stat().st_mtime, reverse=True)), None)
-        e = dict(os.environ, Compat__Listen=CONN, Compat__SimulateLegacy='false', Compat__Upstream__Url=sl, Compat__Release='2608', Compat__Build='10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194',
-                 Compat__Database__User=env['B1_SQL_USER'], Compat__Database__Password=env['B1_SQL_PASS'])
+        e = dict(os.environ, B1McpCompat__Listen=CONN, B1McpCompat__SimulateLegacy='false', B1McpCompat__Upstream__Url=sl, B1McpCompat__Release='2608', B1McpCompat__Build='10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194',
+                 B1McpCompat__Database__User=env['B1_SQL_USER'], B1McpCompat__Database__Password=env['B1_SQL_PASS'])
         proc = subprocess.Popen([str(exe)], cwd=exe.parent, env=e, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         for _ in range(60):

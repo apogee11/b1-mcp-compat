@@ -22,9 +22,9 @@ $hadPassword = [bool]$env:B1_PASSWORD   # only clean up what this script set
 $pw = Get-PlainPassword 'B1_PASSWORD' "Service Layer password for $User"
 $procs = @()
 try {
-  $env:Compat__Listen = "http://127.0.0.1:$ConnectorPort"; $env:Compat__Upstream__Url = $SlUrl
-  if ($Release) { $env:Compat__Release = $Release }; if ($Build) { $env:Compat__Build = $Build }; if ($AllowUnsupportedBuild) { $env:Compat__AllowUnsupportedBuild = 'true' }
-  if ($SqlConnection) { $env:Compat__Database__ConnectionString = $SqlConnection }
+  $env:B1McpCompat__Listen = "http://127.0.0.1:$ConnectorPort"; $env:B1McpCompat__Upstream__Url = $SlUrl
+  if ($Release) { $env:B1McpCompat__Release = $Release }; if ($Build) { $env:B1McpCompat__Build = $Build }; if ($AllowUnsupportedBuild) { $env:B1McpCompat__AllowUnsupportedBuild = 'true' }
+  if ($SqlConnection) { $env:B1McpCompat__Database__ConnectionString = $SqlConnection }
   if ($Exe) { $procs += Start-Process $Exe -WorkingDirectory (Split-Path (Resolve-Path $Exe)) -RedirectStandardOutput "$OutDir\connector.log" -RedirectStandardError "$OutDir\connector.err.log" -WindowStyle Hidden -PassThru }
   else { $procs += Start-Process dotnet -ArgumentList @('run', '-c', 'Release', '--project', (Join-Path $root 'compat\src\B1.Mcp.Compat.Host')) -RedirectStandardOutput "$OutDir\connector.log" -RedirectStandardError "$OutDir\connector.err.log" -WindowStyle Hidden -PassThru }
 
@@ -44,7 +44,7 @@ try {
 } finally {
   $procs | ForEach-Object { try { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue } catch {} }
   if (-not $hadPassword) { Remove-Item Env:B1_PASSWORD -ErrorAction SilentlyContinue }
-  foreach ($n in 'MCP_RATE_LIMIT_MAX', 'B1_USERNAME', 'B1_COMPANY_DB', 'SERVICE_LAYER_ROOT_URL', 'Compat__Listen', 'Compat__Upstream__Url', 'Compat__Database__ConnectionString', 'Compat__Release', 'Compat__Build', 'Compat__AllowUnsupportedBuild') { Remove-Item "Env:$n" -ErrorAction SilentlyContinue }
+  foreach ($n in 'MCP_RATE_LIMIT_MAX', 'B1_USERNAME', 'B1_COMPANY_DB', 'SERVICE_LAYER_ROOT_URL', 'B1McpCompat__Listen', 'B1McpCompat__Upstream__Url', 'B1McpCompat__Database__ConnectionString', 'B1McpCompat__Release', 'B1McpCompat__Build', 'B1McpCompat__AllowUnsupportedBuild') { Remove-Item "Env:$n" -ErrorAction SilentlyContinue }
 }
 Write-Host "`nLogs and report: $OutDir  (connector.log shows what was synthesized)"
 exit $code
