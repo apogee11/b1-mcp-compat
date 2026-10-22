@@ -8,7 +8,7 @@ using B1.Mcp.Compat.Core.Metadata;
 
 namespace B1.Mcp.Compat.Core.Tests;
 
-/// <summary>A data property named like its type is exposed as "&lt;Type&gt;Property" and annotated as the engine property "&lt;Type&gt;" (rea/01-findings.md, B1c).</summary>
+/// <summary>A data property named like its type is exposed as "&lt;Type&gt;Property" and annotated as the engine property "&lt;Type&gt;".</summary>
 public class RenamedPropertyTests
 {
     private const string Plain = """

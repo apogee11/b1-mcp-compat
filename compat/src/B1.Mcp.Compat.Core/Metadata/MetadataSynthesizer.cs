@@ -34,7 +34,7 @@ public sealed class LazyCatalog
 ///     table type or one of its user fields; Label = ColumnName = property name for system columns, Label = description for U_ columns;
 ///     entity label = TableDescription; collection of a UDO line type: Label = TableDescription of the child table, ChildTableName = "@"+child table.
 ///  Renamed property: a data property named like its type is exposed as "&lt;Type&gt;Property" (OData); it resolves by its engine name "&lt;Type&gt;".
-///  Unresolved cases (ADR 0004): a user field (U_) that is not in the catalog of a known table is left out like the native SL does
+///  Unresolved cases: a user field (U_) that is not in the catalog of a known table is left out like the native SL does
 ///  (its engine returns a null description for a column missing in the table); an enum member without a stored value is served without ValidValue.
 ///  Anything else (a standard property the KB does not list, a user-table column or child the catalog does not explain, an entity
 ///  in neither the KB nor the catalog) still fails the entity (<see cref="UnresolvedMappingException"/>): the native behaviour is not verified for it.

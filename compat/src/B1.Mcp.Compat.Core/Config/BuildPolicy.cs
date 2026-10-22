@@ -12,7 +12,7 @@ public sealed record BuildDecision(string? Release, string? Error, string? Warni
 /// <summary>
 /// Which knowledge base serves a session. Nothing is detected: the administrator declares the release (B1McpCompat:Release) and the
 /// build (B1McpCompat:Build) of the Service Layer, and the connector only compares those declarations with what each knowledge base
-/// was extracted from (rea/09: no heuristic; ADR 0010).
+/// was extracted from.
 /// </summary>
 public sealed partial class BuildPolicy
 {

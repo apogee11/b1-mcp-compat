@@ -8,7 +8,7 @@ using B1.Mcp.Compat.Core.Metadata;
 
 namespace B1.Mcp.Compat.Core.Tests;
 
-/// <summary>ADR 0004: unresolved cases follow the native Service Layer (rea/01-findings.md, section B1).</summary>
+/// <summary>Unresolved cases follow the native Service Layer.</summary>
 public class UnresolvedMappingTests
 {
     private const string Plain = """
