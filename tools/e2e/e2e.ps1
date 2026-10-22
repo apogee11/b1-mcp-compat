@@ -1,5 +1,5 @@
 # End-to-end check on a customer installation: SAP MCP server (b1-mcp-server/) -> b1-mcp-compat -> your Service Layer (+ company database).
-# Needs Node.js 22+ (and internet the first time for `npm install`) on the machine that runs it; the SL and SQL can be elsewhere.
+# Needs Node.js 22+ and an already built b1-mcp-server (npm install + npm run build, done by you) on the machine that runs it; the SL and SQL can be elsewhere.
 # The connector is the self-contained exe (-Exe) or, from a source checkout, `dotnet run`.
 #   .\e2e.ps1 -SlUrl https://server:50000 -Company SBODEMO -User manager -Exe ..\..\compat\publish\B1.Mcp.Compat.Host.exe
 # -Release / -Build: release (2608) and build id printed by tools\collect\check-build.ps1; the Service Layer cannot tell them. -AllowUnsupportedBuild: use the release's knowledge base for a build without one (not verified).
@@ -16,9 +16,7 @@ $OutDir = New-OutDir $OutDir
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) { Write-Result FAIL 'Node.js is not installed or not in PATH (22+ required).'; exit 2 }
 if (-not (Test-Path (Join-Path $mcpDir 'package.json'))) { Write-Result FAIL "b1-mcp-server/ not found at the repo root. Download SAP's MCP server (or your variant) and put it there; see README, 'Get the MCP server'."; exit 2 }
 if (-not (Test-Path (Join-Path $mcpDir 'dist\index.js'))) {
-  Write-Result INFO 'Building the MCP server (first run only, can take several minutes and needs internet for npm)...'
-  Push-Location $mcpDir; try { npm install --legacy-peer-deps --no-audit --no-fund; npm run build } finally { Pop-Location }
-  if (-not (Test-Path (Join-Path $mcpDir 'dist\index.js'))) { Write-Result FAIL 'npm install/build failed (see output above).'; exit 2 }
+  Write-Result FAIL "b1-mcp-server is not built. Run 'npm install --legacy-peer-deps; npm run build' in $mcpDir first, then run this script again."; exit 2
 }
 $hadPassword = [bool]$env:B1_PASSWORD   # only clean up what this script set
 $pw = Get-PlainPassword 'B1_PASSWORD' "Service Layer password for $User"

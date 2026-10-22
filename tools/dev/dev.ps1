@@ -29,7 +29,7 @@ $env:SERVICE_LAYER_ROOT_URL = "http://127.0.0.1:$ConnectorPort"; $env:B1_COMPANY
 $env:AUTH_ALLOW_SELF_SIGNED = 'true'; $env:MCP_ALLOWED_HOSTS = '127.0.0.1,localhost'; $env:MCP_HUMAN_CONFIRMATION_ENABLED = 'false'; $env:APP_LOG_LEVEL = 'debug'
 
 if ($Only -ne 'compat' -and -not (Test-Path (Join-Path $mcpDir 'dist\index.js'))) {
-  Push-Location $mcpDir; try { npm install --legacy-peer-deps --no-audit --no-fund; npm run build } finally { Pop-Location }
+  throw "b1-mcp-server is not built. Run 'npm install --legacy-peer-deps; npm run build' in $mcpDir first, then run this script again."
 }
 
 $procs = @()
