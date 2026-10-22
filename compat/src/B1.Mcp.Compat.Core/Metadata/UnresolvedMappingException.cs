@@ -34,7 +34,7 @@ public sealed class UnresolvedMappingException : Exception
         }
         if (items.Count > max) sb.Append($"... and {items.Count - max} more. ");
         var first = items[0];
-        sb.Append("If the Service Layer build differs from the one of the knowledge base, see compat/CHECK-YOUR-BUILD.md. Otherwise ask IT to add a line to mappings.override.json, e.g. ");
+        sb.Append("If the Service Layer build differs from the one of the knowledge base, see docs/guides/check-your-build.md. Otherwise ask IT to add a line to mappings.override.json, e.g. ");
         sb.Append(first.Kind switch
         {
             "entity" => $"{{\"entity\":\"{entity}\",\"table\":\"<DB table>\",\"label\":\"<optional>\"}}",
