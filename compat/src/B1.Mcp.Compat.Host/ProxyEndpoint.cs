@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -62,6 +63,18 @@ public sealed partial class ProxyEndpoint
     {
         var req = ctx.Request;
         var path = req.Path.Value ?? "/";
+        var started = Stopwatch.GetTimestamp();
+        var ev = new Dictionary<string, object?>
+        {
+            ["http.request.method"] = req.Method,
+            ["url.path"] = path,
+            ["url.query"] = req.QueryString.Value,
+            ["client.address"] = ctx.Connection.RemoteIpAddress?.ToString(),
+            ["kind"] = "passthrough",
+        };
+        if (SessionOf(ctx) is { } sid) ev["session"] = sid.Length > 8 ? sid[..8] : sid;
+        ctx.Items[WideKey] = ev;
+        Exception? failure = null;
         try
         {
             if (HttpMethods.IsGet(req.Method) && MetadataPath().IsMatch(path) && req.Query["scope"].Contains("entityset") && !await IsNativeAsync(ctx))
@@ -78,10 +91,31 @@ public sealed partial class ProxyEndpoint
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException)
         {
-            _log.LogError("Upstream error on {Method} {Path}: {Msg}", req.Method, path, e.Message);
+            failure = e;
             if (!ctx.Response.HasStarted) await WriteJsonAsync(ctx, 502, ErrorJson($"b1-mcp-compat: the Service Layer at {_upstream} could not be reached: {e.Message}"));
         }
+        catch (Exception e)
+        {
+            failure = e;
+            throw;
+        }
+        finally
+        {
+            // Wide event: one line per request with everything known about it.
+            var status = failure != null && !ctx.Response.HasStarted ? 500 : ctx.Response.StatusCode;
+            ev["http.response.status_code"] = status;
+            ev["duration_ms"] = Math.Round(Stopwatch.GetElapsedTime(started).TotalMilliseconds, 1);
+            ev["outcome"] = status >= 500 || failure != null ? "error" : "success";
+            _log.Log(status >= 500 || failure != null ? LogLevel.Error : LogLevel.Information, 0, ev.ToList(), failure,
+                (_, _) => FormattableString.Invariant($"{req.Method} {path} {status} {ev["duration_ms"]}ms"));
+        }
     }
+
+    private const string WideKey = "wide-event";
+
+    private static Dictionary<string, object?> Wide(HttpContext ctx) => (Dictionary<string, object?>)ctx.Items[WideKey]!;
+
+    private static string Truncate(string s) => s.Length <= 2000 ? s : s[..2000] + "...";
 
     // ------------------------------------------------------------ metadata
 
@@ -104,6 +138,10 @@ public sealed partial class ProxyEndpoint
     {
         var q = MetadataQuery.Parse(k => ctx.Request.Query[k].Select(v => v ?? ""));
         var company = CompanyOf(ctx);
+        var ev = Wide(ctx);
+        ev["kind"] = "synth_metadata";
+        ev["b1.entity_set"] = q.EntitySet;
+        ev["b1.company_db"] = company;
         if (company == null)
         {
             await WriteJsonAsync(ctx, 502, ErrorJson("b1-mcp-compat: the company database of this session is unknown. Log in through the connector (POST /b1s/v2/Login) so the CompanyDB can be captured."));
@@ -113,11 +151,11 @@ public sealed partial class ProxyEndpoint
         var decision = _policy.Resolve(code);
         if (!decision.Ok || !_synths.TryGetValue(decision.Release!, out var synth))
         {
-            _log.LogWarning("Metadata refused: {Msg}", decision.Error);
             await WriteJsonAsync(ctx, 502, ErrorJson(decision.Error ?? BuildPolicy.UnsupportedMessage));
             return;
         }
         var release = decision.Release!;
+        ev["b1.release"] = release;
         WarnOnce(release, decision);
         try
         {
@@ -129,14 +167,12 @@ public sealed partial class ProxyEndpoint
             });
             var catalog = new LazyCatalog(ct => _catalogs.GetAsync(company, () => LoadUserCatalogAsync(ctx, company)));
             var xml = await synth.BuildAsync(q, model, catalog, s => _log.LogWarning("Entity set {Name} skipped from the list: not in the knowledge base and not a user table/object of {Company}", s, company), ctx.RequestAborted);
-            _log.LogInformation("SYNTH metadata {Entity}", q.EntitySet ?? "(list)");
             ctx.Response.StatusCode = 200;
             ctx.Response.ContentType = "application/xml;odata.metadata=minimal;charset=utf-8";
             await ctx.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(xml), ctx.RequestAborted);
         }
         catch (UnresolvedMappingException e)
         {
-            _log.LogWarning("FAIL {Entity}: {Msg}", e.Entity, e.Message);
             await WriteJsonAsync(ctx, 502, e.ToJson());
         }
         catch (EntitySetNotFoundException)
@@ -196,6 +232,7 @@ public sealed partial class ProxyEndpoint
     private async Task ServePersonalAsync(HttpContext ctx)
     {
         var body = await ReadBodyAsync(ctx);
+        Wide(ctx)["kind"] = "synth_personal";
         if (!_o.SimulateLegacy)
         {
             using var r = await SendAsync(ctx, HttpMethod.Post, ctx.Request.Path.Value + ctx.Request.QueryString, body, Accept: null);
@@ -205,7 +242,7 @@ public sealed partial class ProxyEndpoint
                 await CopyResponseAsync(ctx, r, body);
                 return;
             }
-            _log.LogInformation("Upstream has no PersonalFieldsSetupsService ({Status}): served from OPFS", (int)r.StatusCode);
+            Wide(ctx)["upstream.status"] = (int)r.StatusCode; // the upstream has no PersonalFieldsSetupsService: served from OPFS
         }
         else if (!_sessions.Knows(SessionOf(ctx)))
         {
@@ -221,6 +258,8 @@ public sealed partial class ProxyEndpoint
             return;
         }
         var company = CompanyOf(ctx);
+        Wide(ctx)["b1.table"] = table;
+        Wide(ctx)["b1.company_db"] = company;
         if (company == null)
         {
             await WriteJsonAsync(ctx, 502, ErrorJson("b1-mcp-compat: the company database of this session is unknown. Log in through the connector."));
@@ -233,19 +272,19 @@ public sealed partial class ProxyEndpoint
             return;
         }
         var release = decision.Release!;
+        Wide(ctx)["b1.release"] = release;
         WarnOnce(release, decision);
         try
         {
             var rows = await _personal.GetAsync(company, () => _db.LoadPersonalFieldsAsync(company, ctx.RequestAborted));
             var json = PersonalFieldMapper.ToJson(rows, table, release, $"{ctx.Request.Scheme}://{ctx.Request.Host}");
-            _log.LogInformation("SYNTH personal fields {Table}", table);
             ctx.Response.StatusCode = 200;
             ctx.Response.ContentType = "application/json;odata.metadata=minimal;charset=utf-8";
             await ctx.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(json), ctx.RequestAborted);
         }
         catch (Exception e) when (e is CompanyDatabaseException or NotSupportedException)
         {
-            _log.LogError("Personal data classification unavailable: {Msg}", e.Message);
+            Wide(ctx)["error"] = e.Message;
             await WriteJsonAsync(ctx, 502, ErrorJson("b1-mcp-compat: personal data classification (OPFS) is required and failed: " + e.Message));
         }
     }
@@ -263,10 +302,19 @@ public sealed partial class ProxyEndpoint
     {
         var req = ctx.Request;
         var isLogin = HttpMethods.IsPost(req.Method) && LoginPath().IsMatch(req.Path.Value ?? "");
-        if (isLogin) bufferedBody ??= await ReadBodyAsync(ctx);
+        if (isLogin)
+        {
+            bufferedBody ??= await ReadBodyAsync(ctx);
+            try // the password is never logged
+            {
+                var login = JsonDocument.Parse(bufferedBody).RootElement;
+                Wide(ctx)["b1.company_db"] = login.GetProperty("CompanyDB").GetString();
+                Wide(ctx)["user.name"] = login.GetProperty("UserName").GetString();
+            }
+            catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException) { }
+        }
         var pathAndQuery = req.Path.ToUriComponent() + req.QueryString;
         using var r = await SendAsync(ctx, new HttpMethod(req.Method), pathAndQuery, bufferedBody, Accept: null, streamBody: bufferedBody == null);
-        _log.LogInformation("-> {Method} {Path} {Status}", req.Method, req.Path.Value, (int)r.StatusCode);
         await CopyResponseAsync(ctx, r, bufferedBody, isLogin);
     }
 
@@ -321,6 +369,7 @@ public sealed partial class ProxyEndpoint
         if (type.Contains("json", StringComparison.OrdinalIgnoreCase) || isLogin)
         {
             var text = await r.Content.ReadAsStringAsync(ctx.RequestAborted);
+            if (!r.IsSuccessStatusCode) Wide(ctx)["response_body"] = Truncate(text);
             if (isLogin && r.IsSuccessStatusCode) CaptureLogin(requestBody, text);
             var self = $"{ctx.Request.Scheme}://{ctx.Request.Host}";
             var outText = text.Replace(_upstream, self, StringComparison.Ordinal);
@@ -359,6 +408,7 @@ public sealed partial class ProxyEndpoint
 
     private static async Task WriteJsonAsync(HttpContext ctx, int status, string json)
     {
+        if (status >= 400) Wide(ctx)["response_body"] = Truncate(json);
         ctx.Response.StatusCode = status;
         ctx.Response.ContentType = "application/json;charset=utf-8";
         await ctx.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(json));

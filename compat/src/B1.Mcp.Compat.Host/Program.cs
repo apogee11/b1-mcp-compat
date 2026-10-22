@@ -32,9 +32,11 @@ static int Version()
 static async Task<int> Serve(string[] args)
 {
     var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, ContentRootPath = AppContext.BaseDirectory });
-    builder.Logging.ClearProviders().AddSimpleConsole(c => { c.SingleLine = true; c.TimestampFormat = "HH:mm:ss.fff "; }).AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
-    builder.Host.UseWindowsService(); // no-op when run from a console
     var options = builder.Configuration.GetSection(CompatOptions.Section).Get<CompatOptions>() ?? new CompatOptions();
+    builder.Logging.ClearProviders().AddSimpleConsole(c => { c.SingleLine = true; c.TimestampFormat = "HH:mm:ss.fff "; }).AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
+    try { LogSetup.Configure(builder.Logging, options.Log); }
+    catch (InvalidOperationException e) { Console.Error.WriteLine(e.Message); return 2; }
+    builder.Host.UseWindowsService(); // no-op when run from a console
     var listen = new Uri(options.Listen);
     builder.WebHost.ConfigureKestrel(k =>
     {
