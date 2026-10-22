@@ -43,7 +43,7 @@ try {
   if (udName) { const us = await call('b1_get_entity_schema', { entityName: udName }); check(`schema user-defined entity ${udName}`, !us.err && /Properties/.test(us.t), us.err ? us.t.slice(0, 200) : ''); }
   else check('user-defined entity (none in this company)', true, 'skipped');
 
-  // every entity set: a property the connector cannot explain fails its entity set alone (ADR 0004)
+  // every entity set: a property the connector cannot explain fails its entity set alone
   // SAP's stock server caps `limit` at 50; if it rejects a bigger one, sweep by letter and digit instead (may miss entity sets).
   if (!quick) {
   const namesOf = (r) => r.s?.matches?.map((m) => m.entityName) ?? [];

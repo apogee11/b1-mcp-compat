@@ -6,7 +6,7 @@ using B1.Mcp.Compat.Core.Kb;
 
 namespace B1.Mcp.Compat.Core.Tests;
 
-/// <summary>Build policy: release and build are declared by the administrator, never detected (rea/09, ADR 0010).</summary>
+/// <summary>Build policy: release and build are declared by the administrator, never detected.</summary>
 public class BuildPolicyTests
 {
     private static KnowledgeBase Kb(string fixedVersion, string ob, string en, string rs) => new()

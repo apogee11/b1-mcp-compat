@@ -35,9 +35,9 @@ Thumbs.db
 # Dev profiles (encrypted credentials)
 /.dev/
 
-# rea/ es un repositorio independiente
+# Maintainer-private notes
 /rea/
-# rea/data tiene su propio repositorio (re-b1-mcp-servicelayer)
+# Source packages
 /rea/data/
 
 # Python bytecode
