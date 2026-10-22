@@ -12,7 +12,7 @@ flowchart LR
 ```
 
 > [!NOTE]
-> The exe embeds one knowledge base per verified release (`kb-2208/2408/2608.json.gz`) and chooses by the release and build the administrator declares (`B1McpCompat__Release`, `B1McpCompat__Build`; see [Versions and builds](#versions-and-builds)). Decision: ADR 0010.
+> The exe embeds one knowledge base per verified release (`kb-2208/2408/2608.json.gz`) and chooses by the release and build the administrator declares (`B1McpCompat__Release`, `B1McpCompat__Build`; see [Versions and builds](#versions-and-builds)).
 
 ## What it answers on behalf of the old Service Layer
 
@@ -22,7 +22,7 @@ flowchart LR
 | `POST /b1s/v2/PersonalFieldsSetupsService_GetPersonalFieldsByTable` | The company's `OPFS` table, selected exactly like the native action (see [Personal data](#personal-data)) |
 | Anything else | Passed through untouched (cookies, bodies, status) |
 
-Unresolved cases follow the native Service Layer where that is verified ([ADR 0004](../docs/adr/0004-unresolved-mappings-follow-the-native.md)): a user field (`U_`) missing from the user catalog of a known table is left out, like the native engine does; an enum member without a stored value is served without `ValidValue`. If a standard property is in neither the knowledge base nor the override file, or a user-table column or child is not explained by the catalog, that entity set alone fails with HTTP 502 naming the property and the line to add to `mappings.override.json` (native behaviour not verified for those; nothing is guessed). The personal-data action fails closed.
+Unresolved cases follow the native Service Layer where that is verified: a user field (`U_`) missing from the user catalog of a known table is left out, like the native engine does; an enum member without a stored value is served without `ValidValue`. If a standard property is in neither the knowledge base nor the override file, or a user-table column or child is not explained by the catalog, that entity set alone fails with HTTP 502 naming the property and the line to add to `mappings.override.json` (native behaviour not verified for those; nothing is guessed). The personal-data action fails closed.
 
 ## The standard dictionary
 
@@ -42,26 +42,24 @@ Data comes from per-build compatibility profiles produced by distillation. A ver
 | Manual fixes for one installation | `mappings.override.json` next to the exe | An administrator resolves a 502 |
 | User fields, tables, objects; personal-data rows | Read at run time from the Service Layer and from `OPFS`; cached 5 minutes per company | Never stored |
 
-The knowledge base never contains anything a customer defined. What it is made of and why it is not read at run time is explained in [The standard dictionary](#the-standard-dictionary).
+The knowledge base never contains anything a customer defined. What it is made of is explained in [The standard dictionary](#the-standard-dictionary).
 
 ### Versions and builds
 
 A version is **verified** only when its dictionary was distilled from that build and the result was checked. The Service Layer cannot say which build it is: the `Login` answer has only `Version` (`1000200` FP2208, `1000260` FP2408, `1000340` FP2608), the same for every patch level. So **the administrator declares the release and the build** with `B1McpCompat__Release` and `B1McpCompat__Build`, and the connector loads the knowledge base that matches them. Nothing is detected or inferred.
 
-- **Build id**: an opaque value that identifies the exact build, for example `10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194`. `tools/collect/check-build.ps1` prints the exact `B1McpCompat__Release` and `B1McpCompat__Build` to copy; the connector compares the id with the `build` block of each embedded knowledge base ([covered builds](../docs/sap/downloads.md)).
+- **Build id**: an opaque value that identifies the exact build, for example `10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194`. `tools/collect/check-build.ps1` prints the exact `B1McpCompat__Release` and `B1McpCompat__Build` to copy; the connector compares the id with the `build` block of each embedded knowledge base ([covered builds](../docs/supported-builds.md)).
 - **Supported** (declared build equals the build of the knowledge base of the release): served as verified.
 - **Not supported** (build differs or is not declared, or the release has no knowledge base): metadata requests and the personal-data action fail with HTTP 502 and a fixed message that says to generate the knowledge base for that build (contact the maintainer with the output of `check-build.ps1`) and names `B1McpCompat__AllowUnsupportedBuild`.
 - **`B1McpCompat__AllowUnsupportedBuild=true`**: a build that differs, or is not declared, no longer fails. The connector serves the knowledge base of the declared (or Login) release and logs once a warning with the declared build, the build of the knowledge base used and that it is not verified. A release without any knowledge base is an error whatever this says.
 - **Consistency**: if the `Login` Version does not belong to `B1McpCompat__Release`, or `B1McpCompat__Build` is the build of another release, the answer is a 502 naming both, always (also with `AllowUnsupportedBuild`): the safe choice is to serve nothing. If `B1McpCompat__Release` is empty, the release is that of the `Login` Version.
 - A wrong format of either parameter stops the connector at start. At start the connector logs whether the declaration is supported.
 
-Personal-data and user-defined handling does not depend on the version. Details for the installer: [CHECK-YOUR-BUILD.md](CHECK-YOUR-BUILD.md).
+Personal-data and user-defined handling does not depend on the version. Details for the installer: [Check your build](../docs/guides/check-your-build.md).
 
 ### A new installation that is not verified
 
 For a version or a patch level without a knowledge base (or when a 502 shows properties the dictionary lacks), the installer does not generate anything. The maintainer of this repository is the only one who generates knowledge bases; the installer contacts them.
-
-**Installer (IT manager):**
 
 1. **Check the Service Layer** gives the connector what it needs. From any Windows machine that reaches it:
    ```powershell
@@ -70,13 +68,7 @@ For a version or a patch level without a knowledge base (or when a 502 shows pro
    .\check-upstream.ps1 -SlUrl https://SLSERVER:50000 -Company YOURCOMPANYDB -User manager -Tag 2502 -SqlServer SQLSERVER -SqlUser sa
    ```
    It must end in `READY`: `UserFieldsMD`, `UserTablesMD` and `UserObjectsMD` readable, their `U_*` fields equal to the plain `$metadata`, and (with `-SqlServer`) `OPFS` readable. Note the version code of the `Login` it prints.
-2. **Run `tools/collect/check-build.ps1`** on the Service Layer server ([CHECK-YOUR-BUILD.md](CHECK-YOUR-BUILD.md)) and set the `B1McpCompat__Release` and `B1McpCompat__Build` it prints. If the result is `DISTINTA` or `NO CUBIERTA`, send its output to the maintainer; meanwhile `B1McpCompat__AllowUnsupportedBuild=true` serves the knowledge base of the same release, unverified.
-
-**Maintainer:**
-
-3. **Distill the build** on the maintainer side (maintainer tooling, not in this repository). Add the resulting `kb-<version>.json.gz` to `src/B1.Mcp.Compat.Host/Resources/` and rebuild.
-4. **Prove it.** On a machine with that Service Layer, run `tools/e2e/e2e.ps1`: it asks the MCP server for the schema of every entity set and lists those that fail. Fix each by adding the missing line to `mappings.override.json`, or, if the dictionary itself is wrong, fix the extractor, not the file.
-5. Only then record the version as verified in the root README and the build in `docs/covered-builds.json`.
+2. **Run `tools/collect/check-build.ps1`** on the Service Layer server ([Check your build](../docs/guides/check-your-build.md)) and set the `B1McpCompat__Release` and `B1McpCompat__Build` it prints. If the result is `DISTINTA` or `NO CUBIERTA`, send its output to the maintainer; meanwhile `B1McpCompat__AllowUnsupportedBuild=true` serves the knowledge base of the same release, unverified.
 
 ## Personal data
 
@@ -177,18 +169,3 @@ dotnet publish compat\src\B1.Mcp.Compat.Host -c Release -r win-x64 --self-contai
 | Check a Service Layer before connecting it | `tools\collect\check-upstream.ps1` |
 
 The most useful regression test is a native FP2608 with `SimulateLegacy=true`: the connector then has to reproduce, from the knowledge base and the user catalog, what the native Service Layer says.
-
-### Known gaps
-
-- `SBOUDT`, a user table defined by SAP with columns that have no `U_` prefix, is not resolved unless the dictionary or an override covers it.
-- Versions without a knowledge base (see above).
-- Only English is supported: labels come from the English resource file and the `Login` language code is not mapped. Other languages are future work.
-- SAP HANA and OAuth/Keycloak are not implemented.
-
-### Gotchas learned on real systems
-
-- The Service Layer rejects requests carrying `Expect: 100-continue` with a misleading "Invalid login credential"; the scripts disable it.
-- .NET's cookie container drops cookies for dot-less host names (`WIN-SERVER01`), so the scripts carry the session cookie by hand.
-- Old Windows defaults to TLS 1.0; the scripts force TLS 1.2.
-- Fields starting with `U_` are not reliably customer-defined (some system columns also start with `U_`): customer objects always come from the user catalog.
-- `UserTablesMD.TableType` `bott_NoObject` and `bott_NoObjectAutoIncrement` are the user tables exposed as `U_<TableName>`; the other types belong to user objects.

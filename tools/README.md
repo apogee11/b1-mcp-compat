@@ -7,7 +7,7 @@ Everything here is read-only against your SAP Business One installation and need
 | `collect/` | `check-upstream.ps1` | any Windows machine that reaches the Service Layer | Checks that an older Service Layer gives the connector what it needs: user fields, user tables and user objects readable through the Service Layer (`UserFieldsMD`, `UserTablesMD`, `UserObjectsMD`) and matching the `U_*` properties of `$metadata`. Optional `-SqlServer` also reads `OPFS`. Output: `out\check-<Tag>\` |
 | `collect/` | `verify-version.ps1` + `verify_compare.py` | any Windows machine that reaches the Service Layer (script); anywhere with Python (comparator) | Verification of FP2208/FP2408: login version, full flat `$metadata`, `InventoryGen*` probe, UDF/UDT/UDO counts, optional SQL (`-SqlAuth Sql|Windows`) counts and company-DB columns. Comparator checks it offline against the KB. Output: `out\verify-<Tag>\`. |
 | `collect/` | `check-connection.ps1` | the connector server, elevated PowerShell | Read-only: tests the `B1McpCompat__` connection settings the way the service will use them: SQL login, or Windows authentication as the service account (gMSA included, through a one-shot scheduled task), and the Service Layer address honouring `SkipTlsVerify`. Fails with the reason. Used by README 4.8 |
-| `collect/` | `check-build.ps1` | the Service Layer server | Read-only: prints the build id of the Service Layer and compares them with `docs/covered-builds.json` (`COINCIDE` / `DISTINTA` / `NO CUBIERTA`). If not covered, send the hashes to the repository maintainer: see `compat/CHECK-YOUR-BUILD.md` |
+| `collect/` | `check-build.ps1` | the Service Layer server | Read-only: prints the build id of the Service Layer and compares them with `docs/covered-builds.json` (`COINCIDE` / `DISTINTA` / `NO CUBIERTA`). If not covered, send the hashes to the repository maintainer: see `docs/guides/check-your-build.md` |
 | `e2e/` | `check-installed.ps1` | a machine with Node.js 22+ | Tests an installation whose connector and MCP server are already running (yours or SAP's): starts nothing, no credentials. `-Full` sweeps every entity set |
 | `e2e/` | `e2e.ps1` | a machine with Node.js 22+ | Runs the SAP MCP server (`b1-mcp-server/`, see the root README) through the connector (`-Exe`, or `dotnet run` from a checkout) against your Service Layer and checks its tools |
 | `parity/` | `meta_parity.py` | the development server with a native FP2608 and a built connector | Annotated `$metadata` of every entity set (458) and personal-field tables (3053) of the connector (SimulateLegacy) vs native; credentials from environment variables; exit 0 = identical |
@@ -30,8 +30,3 @@ cd tools\e2e
 .\e2e.ps1 -SlUrl https://SLSERVER:50000 -Company YOURCOMPANYDB -User manager -Exe ..\..\compat\publish\B1.Mcp.Compat.Host.exe
 ```
 The connector reads `OPFS` from the company database with Integrated Security by default; for a SQL login add `-SqlConnection 'Server=SQLHOST;User Id=USER;Password=PWD;TrustServerCertificate=true;Initial Catalog={CompanyDB}'`.
-
-## Notes learned the hard way
-- The Service Layer rejects requests carrying `Expect: 100-continue` with a misleading "Invalid login credential"; the scripts disable it.
-- .NET's cookie container drops cookies for dot-less host names (`WIN-SERVER01`), so the scripts carry the session cookie by hand.
-- Old Windows defaults to TLS 1.0; the scripts force TLS 1.2.
