@@ -45,7 +45,7 @@ public sealed partial class ProxyEndpoint
     {
         _o = o;
         _http = http;
-        _upstream = o.Upstream.Url.TrimEnd('/');
+        _upstream = o.ServiceLayer.Url.TrimEnd('/');
         _synths = kbs.ToDictionary(k => k.Key, k => new MetadataSynthesizer(k.Value, ov));
         _db = db;
         _policy = policy;

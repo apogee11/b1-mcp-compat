@@ -1,12 +1,15 @@
 ﻿// End-to-end check of the SAP B1 MCP server through b1-mcp-compat. Business data read: one row of Currencies (non-personal).
 //   node e2e-client.mjs http://localhost:3100/mcp report.json
 import fs from 'node:fs';
+// The MCP SDK comes from b1-mcp-server/node_modules; without it, from an `npm install @modelcontextprotocol/sdk` next to this file.
 const sdk = new URL('../../b1-mcp-server/node_modules/@modelcontextprotocol/sdk/dist/esm/', import.meta.url);
-const { Client } = await import(new URL('client/index.js', sdk).href);
-const { StreamableHTTPClientTransport } = await import(new URL('client/streamableHttp.js', sdk).href);
+const load = async (f) => fs.existsSync(new URL(f, sdk)) ? import(new URL(f, sdk).href) : import(`@modelcontextprotocol/sdk/${f.replace(/\.js$/, '')}`);
+const { Client } = await load('client/index.js');
+const { StreamableHTTPClientTransport } = await load('client/streamableHttp.js');
 
-const endpoint = process.argv[2] ?? 'http://localhost:3100/mcp';
-const reportPath = process.argv[3] ?? 'e2e-report.json';
+// --quick: skip the sweep of every entity set (~500 calls, which the MCP server's default rate limit of 120 per minute would reject).
+const quick = process.argv.includes('--quick');
+const [endpoint = 'http://localhost:3100/mcp', reportPath = 'e2e-report.json'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok: !!ok, detail }); console.log(`[${ok ? 'PASS' : 'FAIL'}] ${name}${detail ? ' - ' + detail : ''}`); };
 const text = (r) => (r.content ?? []).map((c) => c.text ?? '').join('\n');
@@ -42,8 +45,9 @@ try {
 
   // every entity set: a property the connector cannot explain fails its entity set alone (ADR 0004)
   // SAP's stock server caps `limit` at 50; if it rejects a bigger one, sweep by letter and digit instead (may miss entity sets).
+  if (!quick) {
   const namesOf = (r) => r.s?.matches?.map((m) => m.entityName) ?? [];
-  let names = namesOf(await call('b1_find_entities', { category: 'all', limit: 100000 }));
+  let names =namesOf(await call('b1_find_entities', { category: 'all', limit: 100000 }));
   if (!names.length) {
     const found = new Set();
     for (const q of 'abcdefghijklmnopqrstuvwxyz0123456789') namesOf(await call('b1_find_entities', { category: 'all', query: q, limit: 50 })).forEach((n) => found.add(n));
@@ -61,6 +65,7 @@ try {
   }));
   check(`schema of every entity set (${names.length})`, names.length > 0 && !bad.length, bad.length ? `${bad.length} failed` : '');
   bad.forEach((b) => console.log(`       ${b}`));
+  }
 
   const cur = await call('b1_read', { entityName: 'Currencies', operation: 'read', selectString: 'Code', topNumber: 1 });
   check('read Currencies (top 1)', !cur.err && /SUCCESS/.test(cur.t), cur.err ? cur.t.slice(0, 200) : '');

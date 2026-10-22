@@ -126,11 +126,11 @@ Environment variables `B1McpCompat__Section__Key`; there is no settings file. Ev
 
 | Key | Default | |
 |---|---|---|
-| `Listen` | `https://localhost:50100` | Listener. HTTPS uses a generated self-signed certificate unless `Tls` points to a PFX; `http://…` is allowed on trusted networks |
+| `Listen` | `http://127.0.0.1:50300` | Listener. `https://…` requires `Tls:CertificatePath` (a PFX you provide; the connector does not generate certificates) |
 | `Release` | empty | Release of the Service Layer, declared: `2208`, `2408` or `2608` (`FP` prefix allowed). Empty: the release of the Login `Version` |
 | `Build` | empty | Build id printed by `tools/collect/check-build.ps1`. Empty: not declared, counted as unsupported |
 | `AllowUnsupportedBuild` | `false` | `false`: a build without knowledge base is a 502 with a fixed message. `true`: serve the knowledge base of the release, with a log warning, not verified |
-| `Upstream:Url` / `SkipTlsVerify` | `https://localhost:50000` / `true` | The Service Layer (they ship self-signed certificates) |
+| `ServiceLayer:Url` / `SkipTlsVerify` | `https://localhost:50000` / `true` | The Service Layer (they ship self-signed certificates) |
 | `Database:Provider` | `SqlServer` | `SqlServer` or `Hana` (experimental) |
 | `Database:Server` | `localhost` | `host`, `host\instance` or `host,port`. The database is the `CompanyDB` of the Login |
 | `Database:User` | empty | SQL login. Empty means Windows authentication (the account the process runs as) |

@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Security;
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using B1.Mcp.Compat.Core.Kb;
 using B1.Mcp.Compat.Core.Mappings;
@@ -111,40 +110,20 @@ public static class Http
             PooledConnectionLifetime = TimeSpan.FromMinutes(5),
             ConnectTimeout = TimeSpan.FromSeconds(30),
         };
-        if (o.Upstream.SkipTlsVerify) h.SslOptions = new SslClientAuthenticationOptions { RemoteCertificateValidationCallback = (_, _, _, _) => true };
+        if (o.ServiceLayer.SkipTlsVerify) h.SslOptions = new SslClientAuthenticationOptions { RemoteCertificateValidationCallback = (_, _, _, _) => true };
         return new HttpClient(h) { Timeout = TimeSpan.FromMinutes(10) };
     }
 }
 
-public static class SelfSigned
+public static class TlsCertificate
 {
-    public static X509Certificate2 Create(CompatOptions.TlsOptions tls)
+    /// <summary>Loads the PFX the administrator provides for https. There is no generated fallback.</summary>
+    public static X509Certificate2 Load(CompatOptions.TlsOptions tls)
     {
-        if (!string.IsNullOrWhiteSpace(tls.CertificatePath))
-        {
-            var p = CompatOptions.Resolve(tls.CertificatePath);
-            if (File.Exists(p)) return X509CertificateLoader.LoadPkcs12FromFile(p, tls.CertificatePassword);
-            var generated = Generate();
-            File.WriteAllBytes(p, generated.Export(X509ContentType.Pfx, tls.CertificatePassword));
-            return generated;
-        }
-        return Generate();
-    }
-
-    private static X509Certificate2 Generate()
-    {
-        using var rsa = RSA.Create(2048);
-        var host = Dns.GetHostName();
-        var req = new CertificateRequest($"CN={host}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-        var san = new SubjectAlternativeNameBuilder();
-        san.AddDnsName("localhost");
-        san.AddDnsName(host);
-        san.AddIpAddress(IPAddress.Loopback);
-        san.AddIpAddress(IPAddress.IPv6Loopback);
-        req.CertificateExtensions.Add(san.Build());
-        req.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(new OidCollection { new Oid("1.3.6.1.5.5.7.3.1") }, false));
-        using var cert = req.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(5));
-        // re-import so the private key is usable by Kestrel on Windows
-        return X509CertificateLoader.LoadPkcs12(cert.Export(X509ContentType.Pfx), null, X509KeyStorageFlags.Exportable);
+        if (string.IsNullOrWhiteSpace(tls.CertificatePath))
+            throw new InvalidOperationException("Listen is https:// but Tls:CertificatePath is not set. Provide a PFX certificate or listen on http://.");
+        var p = CompatOptions.Resolve(tls.CertificatePath);
+        if (!File.Exists(p)) throw new InvalidOperationException($"Certificate file not found: {p}");
+        return X509CertificateLoader.LoadPkcs12FromFile(p, tls.CertificatePassword);
     }
 }
