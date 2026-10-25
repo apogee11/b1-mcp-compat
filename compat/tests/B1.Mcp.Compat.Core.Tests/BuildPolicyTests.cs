@@ -160,6 +160,8 @@ public class BuildPolicyTests
         foreach (var b in table.RootElement.GetProperty("builds").EnumerateArray())
         {
             var package = b.GetProperty("package").GetString()!;
+            // check-build.ps1 prints this as B1McpCompat__Release: it must be the release the connector derives from the package name
+            Assert.Equal("FP" + BuildPolicy.ReleaseOf(package), b.GetProperty("release").GetString());
             using var gz = new GZipStream(File.OpenRead(Path.Combine(root!, "compat", "src", "B1.Mcp.Compat.Host", "Resources", $"kb-{package}.json.gz")), CompressionMode.Decompress);
             var id = BuildPolicy.BuildIdOf(KnowledgeBase.Load(gz));
             var f = b.GetProperty("files").EnumerateArray().ToDictionary(x => x.GetProperty("name").GetString()!);
