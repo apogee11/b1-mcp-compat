@@ -55,7 +55,7 @@ function Write-Params([string]$release) {
 }
 $byVersion = @($covered | Where-Object { ($_.files | Where-Object { $_.name -eq 'OBServerDLL.dll' }).fileVersion -eq $obs.Version })
 if ($byVersion.Count -eq 0) {
-    Write-Host "`nNO CUBIERTA (NOT COVERED): file version $($obs.Version) is not in the table ($(($covered | ForEach-Object release) -join ', '))."
+    Write-Host "`nNO CUBIERTA (NOT COVERED): file version $($obs.Version) is not in the table ($(($covered | ForEach-Object package) -join ', '))."
     Write-Params $null
     Write-Host 'Send this output to the maintainer of the repository so the knowledge base for your build is generated (docs/guides/check-your-build.md).'
     exit 2
@@ -79,7 +79,7 @@ if ($diff.Count -eq 0) {
     Write-Params $relNum
     exit 0
 }
-Write-Host "`nDISTINTA (DIFFERENT): same file version as $($rel.release) but not the same files (another patch level)."
+Write-Host "`nDISTINTA (DIFFERENT): same file version as $($rel.package) but not the same files (another patch level)."
 $diff | ForEach-Object { Write-Host "  - $_" }
 Write-Params $relNum
 Write-Host 'This build has no knowledge base. Send this output to the maintainer (docs/guides/check-your-build.md); until then the connector refuses it unless B1McpCompat__AllowUnsupportedBuild=true.'
