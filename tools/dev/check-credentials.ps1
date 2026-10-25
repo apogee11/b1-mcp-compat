@@ -10,7 +10,7 @@ $secure = Get-Content $file | ConvertTo-SecureString
 $p = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)) | ConvertFrom-Json
 
 # Service Layer usually runs with a self-signed certificate.
-if ($PSVersionTable.PSVersion.Major -lt 6) { [Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 }
+if ($PSVersionTable.PSVersion.Major -lt 6) { [Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; [Net.ServicePointManager]::Expect100Continue = $false }   # the Service Layer mishandles "Expect: 100-continue" (empty credentials, error 206)
 $tls = if ($PSVersionTable.PSVersion.Major -ge 6) { @{ SkipCertificateCheck = $true } } else { @{} }
 
 $failed = $false
@@ -22,8 +22,14 @@ function Check($what, [scriptblock]$test) {
 $base = $p.SlUrl.TrimEnd('/')
 Check "Service Layer login ($base, $($p.Company), $($p.User))" {
   $body = @{ CompanyDB = $p.Company; UserName = $p.User; Password = $p.Password } | ConvertTo-Json
-  $s = Invoke-RestMethod "$base/b1s/v2/Login" -Method Post -Body $body -ContentType 'application/json' @tls
-  Invoke-RestMethod "$base/b1s/v2/Logout" -Method Post -Headers @{ Cookie = "B1SESSION=$($s.SessionId)" } @tls | Out-Null
+  $r = Invoke-WebRequest "$base/b1s/v2/Login" -Method Post -Body $body -ContentType 'application/json' -UseBasicParsing @tls
+  # PowerShell does not keep the B1SESSION cookie (malformed Set-Cookie), so B1SESSION and ROUTEID (the node holding the session) go into a session by hand.
+  $ws = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+  foreach ($kv in (@($r.Headers['Set-Cookie']) -join ',' -split ',' | ForEach-Object { ($_ -split ';')[0].Trim() })) {
+    $n, $v = $kv -split '=', 2
+    $ws.Cookies.Add((New-Object Net.Cookie $n, $v, '/', ([Uri]$base).Host))
+  }
+  Invoke-WebRequest "$base/b1s/v2/Logout" -Method Post -WebSession $ws -UseBasicParsing @tls | Out-Null
 }
 
 Check "SQL Server connection ($($p.SqlHost), $($p.Company))" {
