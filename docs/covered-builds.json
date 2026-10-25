@@ -2,7 +2,7 @@
   "builds": [
     {
       "package": "B1100002011HF_1",
-      "release": "FP1100",
+      "release": "FP2011",
       "buildId": "10.0.141.0-4c400c268031-48c9cfd2d7b2-6a7f4b0d4ee4",
       "files": [
         {
@@ -24,7 +24,7 @@
     },
     {
       "package": "B1100002011HF_2",
-      "release": "FP1100",
+      "release": "FP2011",
       "buildId": "10.0.141.0-2fda1c6773f6-b50a9de0fcc6-d95b8015a90a",
       "files": [
         {
@@ -46,7 +46,7 @@
     },
     {
       "package": "B1100002111HF_1",
-      "release": "FP1100",
+      "release": "FP2111",
       "buildId": "10.0.181.0-86447be3e17b-ca3553afc6d1-74a4276eedf3",
       "files": [
         {
@@ -68,7 +68,7 @@
     },
     {
       "package": "B110002105HF1_1",
-      "release": "FP1100",
+      "release": "FP2105",
       "buildId": "10.0.160.0-0081a4cd7c9a-505983efec3f-f8f5f972aa4c",
       "files": [
         {
@@ -90,7 +90,7 @@
     },
     {
       "package": "B110002108HF1_1",
-      "release": "FP1100",
+      "release": "FP2108",
       "buildId": "10.0.170.0-aafa54020e42-08fbdd25e4d0-3c9f1de0a38f",
       "files": [
         {
@@ -112,7 +112,7 @@
     },
     {
       "package": "B110002202HF1_1",
-      "release": "FP1100",
+      "release": "FP2202",
       "buildId": "10.0.191.0-1a8b2764c5c9-fbd934954ba9-a81ba9b2116f",
       "files": [
         {
@@ -134,7 +134,7 @@
     },
     {
       "package": "B110002208HF1_1",
-      "release": "FP1100",
+      "release": "FP2208",
       "buildId": "10.0.201.0-18dd93ed5a64-b00c425dbf81-0c421abc1e6e",
       "files": [
         {
@@ -156,7 +156,7 @@
     },
     {
       "package": "B110002208HF_2",
-      "release": "FP1100",
+      "release": "FP2208",
       "buildId": "10.0.201.0-83c8fbccd13f-9a5b27475727-e5989639f365",
       "files": [
         {
@@ -178,7 +178,7 @@
     },
     {
       "package": "B110002305HF_1",
-      "release": "FP1100",
+      "release": "FP2305",
       "buildId": "10.0.210.0-4d0d2126916e-293599b7ac8f-09b27b87ee28",
       "files": [
         {
@@ -200,7 +200,7 @@
     },
     {
       "package": "B110002308HF_1",
-      "release": "FP1100",
+      "release": "FP2308",
       "buildId": "10.0.220.0-628c9551d6c5-b23ed4cfbec8-712ee519faee",
       "files": [
         {
@@ -222,7 +222,7 @@
     },
     {
       "package": "B110002311HF_1",
-      "release": "FP1100",
+      "release": "FP2311",
       "buildId": "10.0.230.0-89eae06e805b-d6a0b87cb2cb-2e429d562882",
       "files": [
         {
@@ -244,7 +244,7 @@
     },
     {
       "package": "B110002402HF_1",
-      "release": "FP1100",
+      "release": "FP2402",
       "buildId": "10.0.240.0-cfc78a25a91a-565dd22ffdb5-b08d9f7e79be",
       "files": [
         {
@@ -266,7 +266,7 @@
     },
     {
       "package": "B110002405HF_1",
-      "release": "FP1100",
+      "release": "FP2405",
       "buildId": "10.0.251.0-fceb66cf007a-84dfbcbf9907-1dbfe4d72949",
       "files": [
         {
@@ -288,7 +288,7 @@
     },
     {
       "package": "B110002408HF_1",
-      "release": "FP1100",
+      "release": "FP2408",
       "buildId": "10.0.261.0-e44bfcceec1c-fb0fef35fc12-3f10840fe99a",
       "files": [
         {
@@ -310,7 +310,7 @@
     },
     {
       "package": "B110002502HF_1",
-      "release": "FP1100",
+      "release": "FP2502",
       "buildId": "10.0.281.0-1bd67d9f1029-b1c83adcb76f-03936fb83dc1",
       "files": [
         {
@@ -332,7 +332,7 @@
     },
     {
       "package": "B110002505HF_1",
-      "release": "FP1100",
+      "release": "FP2505",
       "buildId": "10.0.291.0-5666ed630281-53c79ec4fbbc-b6580c59ecbe",
       "files": [
         {
@@ -354,7 +354,7 @@
     },
     {
       "package": "B110002511HF_1",
-      "release": "FP1100",
+      "release": "FP2511",
       "buildId": "10.0.311.0-6996db56b83e-643202867cee-196b1b2d2ccb",
       "files": [
         {
@@ -376,7 +376,7 @@
     },
     {
       "package": "B110002602HF_1",
-      "release": "FP1100",
+      "release": "FP2602",
       "buildId": "10.0.321.0-489d5b52d4ef-29d40c83424c-2c40c492f212",
       "files": [
         {
@@ -398,7 +398,7 @@
     },
     {
       "package": "B110002605HF_1",
-      "release": "FP1100",
+      "release": "FP2605",
       "buildId": "10.0.331.0-09a205f1e40b-2d2625c56c99-823adeab8d59",
       "files": [
         {
@@ -420,7 +420,7 @@
     },
     {
       "package": "B110002608HF_1",
-      "release": "FP1100",
+      "release": "FP2608",
       "buildId": "10.0.340.0-7955e360cba0-edd791a0c575-78d6096cf00a",
       "files": [
         {
@@ -442,7 +442,7 @@
     },
     {
       "package": "B11000SP_2311",
-      "release": "FP1100",
+      "release": "FP2311",
       "buildId": "10.0.230.0-678fafff8d3b-91016ef69a32-247035d964c4",
       "files": [
         {
@@ -464,7 +464,7 @@
     },
     {
       "package": "B11000SP_2402",
-      "release": "FP1100",
+      "release": "FP2402",
       "buildId": "10.0.240.0-b04e4db08c43-2bd6f6550ccb-2a7e7add7c82",
       "files": [
         {
@@ -486,7 +486,7 @@
     },
     {
       "package": "B11000SP_2408",
-      "release": "FP1100",
+      "release": "FP2408",
       "buildId": "10.0.260.0-ea80448581ff-fe6cbe19acb9-b03b314fdd6c",
       "files": [
         {
@@ -508,7 +508,7 @@
     },
     {
       "package": "B11000SP_2411",
-      "release": "FP1100",
+      "release": "FP2411",
       "buildId": "10.0.270.0-78f27b8b9e29-79b907e3590e-ba272e18fe5c",
       "files": [
         {
@@ -530,7 +530,7 @@
     },
     {
       "package": "B11000SP_2505",
-      "release": "FP1100",
+      "release": "FP2505",
       "buildId": "10.0.290.0-c9ae21daeed4-55fe44b82e4d-3443b8dca453",
       "files": [
         {
@@ -552,7 +552,7 @@
     },
     {
       "package": "B11000SP_2511",
-      "release": "FP1100",
+      "release": "FP2511",
       "buildId": "10.0.310.0-ee6913dffe5b-7b4838227ade-e4634e8a197c",
       "files": [
         {
@@ -574,7 +574,7 @@
     },
     {
       "package": "B11000SP_2605",
-      "release": "FP1100",
+      "release": "FP2605",
       "buildId": "10.0.330.0-47b4ea54a506-216ffe3a90ed-825e572978fd",
       "files": [
         {
@@ -596,7 +596,7 @@
     },
     {
       "package": "B11000_2008",
-      "release": "FP1100",
+      "release": "FP2008",
       "buildId": "10.0.130.0-57af7b02a946-4e49edb84071-704c80750289",
       "files": [
         {
@@ -618,7 +618,7 @@
     },
     {
       "package": "B11000_2011",
-      "release": "FP1100",
+      "release": "FP2011",
       "buildId": "10.0.140.0-8d3df26fae3e-529fef948965-e1cbf097ef30",
       "files": [
         {
@@ -640,7 +640,7 @@
     },
     {
       "package": "B11000_2102",
-      "release": "FP1100",
+      "release": "FP2102",
       "buildId": "10.0.150.0-dfa5d318c200-c420b722fa92-bad9538d3c9d",
       "files": [
         {
@@ -662,7 +662,7 @@
     },
     {
       "package": "B11000_2105",
-      "release": "FP1100",
+      "release": "FP2105",
       "buildId": "10.0.160.0-03077f50d654-fdec5332093a-e8a97efa0067",
       "files": [
         {
@@ -684,7 +684,7 @@
     },
     {
       "package": "B11000_2108",
-      "release": "FP1100",
+      "release": "FP2108",
       "buildId": "10.0.170.0-a343684ff5ba-dbb1d3fec4f7-abc37fe997bd",
       "files": [
         {
@@ -706,7 +706,7 @@
     },
     {
       "package": "B11000_2111",
-      "release": "FP1100",
+      "release": "FP2111",
       "buildId": "10.0.180.0-aa308db3b547-227cb5ad83ae-4ff91d5b89ef",
       "files": [
         {
@@ -728,7 +728,7 @@
     },
     {
       "package": "B11000_2202",
-      "release": "FP1100",
+      "release": "FP2202",
       "buildId": "10.0.190.0-16386a021d32-3d5447646399-acc3726c1513",
       "files": [
         {
@@ -750,7 +750,7 @@
     },
     {
       "package": "B11000_2208",
-      "release": "FP1100",
+      "release": "FP2208",
       "buildId": "10.0.200.0-24aeb23de137-2eb48c85224f-c15ab35d594d",
       "files": [
         {
@@ -772,7 +772,7 @@
     },
     {
       "package": "B11000_2305",
-      "release": "FP1100",
+      "release": "FP2305",
       "buildId": "10.0.210.0-86df99d89132-3aade838ff2c-bafcc6c5b722",
       "files": [
         {
@@ -794,7 +794,7 @@
     },
     {
       "package": "B11000_2308",
-      "release": "FP1100",
+      "release": "FP2308",
       "buildId": "10.0.220.0-7b134f389818-4de0723a3fd8-9a522b22fd4c",
       "files": [
         {
@@ -816,7 +816,7 @@
     },
     {
       "package": "B11000_2405",
-      "release": "FP1100",
+      "release": "FP2405",
       "buildId": "10.0.250.0-537dc1b598f3-965643cd4ef9-1ac38b8075b1",
       "files": [
         {
@@ -838,7 +838,7 @@
     },
     {
       "package": "B11000_2502",
-      "release": "FP1100",
+      "release": "FP2502",
       "buildId": "10.0.280.0-2eff74abbfbb-9d2a66382a73-68f879d84009",
       "files": [
         {
@@ -860,7 +860,7 @@
     },
     {
       "package": "B11000_2508",
-      "release": "FP1100",
+      "release": "FP2508",
       "buildId": "10.0.300.0-9569a4cb63be-521580d249f8-fe631fa0592c",
       "files": [
         {
@@ -882,7 +882,7 @@
     },
     {
       "package": "B11000_2602",
-      "release": "FP1100",
+      "release": "FP2602",
       "buildId": "10.0.320.0-1dbf7e7cfc75-a13b197811f4-92a0ab6f1a33",
       "files": [
         {
@@ -904,7 +904,7 @@
     },
     {
       "package": "B11000_2608",
-      "release": "FP1100",
+      "release": "FP2608",
       "buildId": "10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194",
       "files": [
         {
