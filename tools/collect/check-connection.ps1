@@ -93,7 +93,7 @@ else {
   [Net.ServicePointManager]::ServerCertificateValidationCallback = if ($skip) { { $true } } else { $null }
   $tls = if ($skip) { 'certificate not verified' } else { 'certificate verified' }
   try {
-    Invoke-WebRequest ($slUrl.TrimEnd('/') + '/b1s/v1/') -UseBasicParsing -TimeoutSec 10 | Out-Null
+    Invoke-WebRequest ($slUrl.TrimEnd('/') + '/b1s/v2/') -UseBasicParsing -TimeoutSec 10 | Out-Null
     Ok "Service Layer $slUrl answers ($tls)."
   } catch {
     if ($_.Exception.Response) { Ok "Service Layer $slUrl answers HTTP $([int]$_.Exception.Response.StatusCode) ($tls)." }

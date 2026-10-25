@@ -22,8 +22,8 @@ function Check($what, [scriptblock]$test) {
 $base = $p.SlUrl.TrimEnd('/')
 Check "Service Layer login ($base, $($p.Company), $($p.User))" {
   $body = @{ CompanyDB = $p.Company; UserName = $p.User; Password = $p.Password } | ConvertTo-Json
-  $s = Invoke-RestMethod "$base/b1s/v1/Login" -Method Post -Body $body -ContentType 'application/json' @tls
-  Invoke-RestMethod "$base/b1s/v1/Logout" -Method Post -Headers @{ Cookie = "B1SESSION=$($s.SessionId)" } @tls | Out-Null
+  $s = Invoke-RestMethod "$base/b1s/v2/Login" -Method Post -Body $body -ContentType 'application/json' @tls
+  Invoke-RestMethod "$base/b1s/v2/Logout" -Method Post -Headers @{ Cookie = "B1SESSION=$($s.SessionId)" } @tls | Out-Null
 }
 
 Check "SQL Server connection ($($p.SqlHost), $($p.Company))" {

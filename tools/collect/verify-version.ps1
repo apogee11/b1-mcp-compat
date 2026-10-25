@@ -32,17 +32,15 @@ function Hdr($extra = @{}) { $h = @{}; if ($script:ck) { $h['Cookie'] = $script:
 
 Log "# Verification $Tag - $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss')) - $SlUrl company $Company"
 
-# 1. Login (v2, then v1) and Version
+# 1. Login (v2) and Version
 Log ''; Log '## 1. Login'
 $base = $null; $ver = ''
-foreach ($v in 'v2', 'v1') {
-  $body = (@{ CompanyDB = $Company; UserName = $User; Password = $slPwd } | ConvertTo-Json -Compress)
-  $l = Invoke-Http POST "$SlUrl/b1s/$v/Login" $body
-  Log "- POST /b1s/$v/Login -> HTTP $($l.Status)$(if ($l.Status -ne 200) { ' ' + (Get-SlErrorMessage $l) })"
-  if ($l.Status -eq 200) { $base = "$SlUrl/b1s/$v"; $script:ck = Get-CookieHeader $l; $ver = [regex]::Match($l.Text, '"Version"\s*:\s*"?(\d+)"?').Groups[1].Value; break }
-}
+$body = (@{ CompanyDB = $Company; UserName = $User; Password = $slPwd } | ConvertTo-Json -Compress)
+$l = Invoke-Http POST "$SlUrl/b1s/v2/Login" $body
+Log "- POST /b1s/v2/Login -> HTTP $($l.Status)$(if ($l.Status -ne 200) { ' ' + (Get-SlErrorMessage $l) })"
+if ($l.Status -eq 200) { $base = "$SlUrl/b1s/v2"; $script:ck = Get-CookieHeader $l; $ver = [regex]::Match($l.Text, '"Version"\s*:\s*"?(\d+)"?').Groups[1].Value }
 $slPwd = $null
-if (-not $base) { $env:B1_PASSWORD = $null; Write-Result FAIL 'Login failed on v2 and v1'; Set-Content "$OutDir\report.md" $sb.ToString() -Encoding UTF8; exit 2 }
+if (-not $base) { $env:B1_PASSWORD = $null; Write-Result FAIL 'Login failed on v2'; Set-Content "$OutDir\report.md" $sb.ToString() -Encoding UTF8; exit 2 }
 Log "- Version returned by Login: $ver (expected 1000200 for 2208, 1000260 for 2408)"
 $res['loginBase'] = $base; $res['versionCode'] = $ver
 
@@ -72,12 +70,9 @@ Log ''; Log '## 3. InventoryGenEntries / InventoryGenExits (new names) vs Invent
 $probe = [ordered]@{}
 foreach ($n in 'InventoryGenEntries', 'InventoryGenExits', 'InventoryGenEntry', 'InventoryGenExit') {
   $row = [ordered]@{ inMetadataSets = ($metaSetNames -contains $n) }
-  foreach ($v in 'v1', 'v2') {
-    $pr = Invoke-Http GET "$SlUrl/b1s/$v/${n}?`$top=0" -Headers (Hdr)
-    $row["http_$v"] = $pr.Status
-  }
+  $row['http_v2'] = (Invoke-Http GET "$base/${n}?`$top=0" -Headers (Hdr)).Status
   $probe[$n] = $row
-  Log "- ${n}: in `$metadata sets=$($row.inMetadataSets) GET v1=$($row.http_v1) v2=$($row.http_v2)"
+  Log "- ${n}: in `$metadata sets=$($row.inMetadataSets) GET v2=$($row.http_v2)"
 }
 $res['inventoryGen'] = $probe
 
