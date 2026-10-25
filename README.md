@@ -227,13 +227,13 @@ Declare the release and build of your Service Layer. Run `tools/collect/check-bu
 
 | Setting | Default | Example | What it is |
 |---|---|---|---|
-| `B1McpCompat__Release` | empty | `2208` | Release of your Service Layer (`2208`, `2408`, `2608`; `FP` prefix allowed). Empty: taken from the `Login` version |
-| `B1McpCompat__Build` | empty | `10.0.200.0-24aeb23de137-2eb48c85224f-c15ab35d594d` | Build id printed by `tools/collect/check-build.ps1`. Empty counts as an unsupported build |
+| `B1McpCompat__Release` | empty | `2608` | Release of your Service Layer (`2208`, `2408`, `2608`; `FP` prefix allowed). Empty: taken from the `Login` version |
+| `B1McpCompat__Build` | empty | `10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194` | Build id printed by `tools/collect/check-build.ps1`. Empty counts as an unsupported build |
 
 ```powershell
 $releaseVars = @(
-  'B1McpCompat__Release=2208'
-  'B1McpCompat__Build=10.0.200.0-24aeb23de137-2eb48c85224f-c15ab35d594d'
+  'B1McpCompat__Release=2608'
+  'B1McpCompat__Build=10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194'
   # 'B1McpCompat__AllowUnsupportedBuild=true'   # serve the knowledge base of the same release for a build that is not covered, with a warning and unverified
 )
 ```
@@ -481,11 +481,13 @@ You need the [requirements](#requirements) first.
    .\tools\dev\set-credentials.ps1
    ```
 
-3. **Start the connector.** It restarts on every code change. Leave this window open.
+3. **Start the connector.** It restarts on every code change. Leave this window open. The release and build of your Service Layer are required: run `tools\collect\check-build.ps1` on the Service Layer server ([4.5](#45-check-b1-release-and-build)) and pass what it prints. Without `-Build` the script stops.
 
    ```powershell
-   .\tools\dev\dev.ps1
+   .\tools\dev\dev.ps1 -Release 2608 -Build 10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194
    ```
+
+   For a build that is not covered, add `-AllowUnsupportedBuild` (served unverified, with a warning).
 
    Wait until it reports it is listening on `http://127.0.0.1:50300` (check with `Test-NetConnection 127.0.0.1 -Port 50300`) before starting the MCP server.
 
@@ -539,7 +541,7 @@ You need the [requirements](#requirements) first.
 1. **Requirements.** Ask permission, then run read-only version checks for everything in [Requirements](#requirements) (OS, PowerShell, .NET 10 SDK, Node.js 22+, git). Done when: every item has a version or a "missing" result, and the user has fixed all that are missing.
 2. **Mode.** Ask: Windows services ([Getting started](#getting-started)) or console ([Run from the console](#run-from-the-console-no-windows-services)). For services, check that the shell is elevated. Done when: the mode is chosen (and, for services, the shell is elevated).
 3. **Exact build.** The connector needs the exact Business One build: the Service Layer reports only its release, and the compatibility data is extracted per exact build ([Check your build](docs/guides/check-your-build.md)). Ask permission to run `tools/collect/check-build.ps1` (read-only, no credentials); ask for the Service Layer folder path if the default is wrong, or have the user run it on the Service Layer server and paste the output. If the build is not covered, present the two options in that document and let the user choose. Done when: release and build id are known and the build is covered, or the user has chosen an option for an uncovered build.
-4. **Install or run.** Follow the chosen path of this README in order, stopping at each decision. The user runs the final install command ([4.8](#48-create-and-start-the-service)) themselves in an elevated PowerShell: show it complete, exactly as it will run, with every variable filled in and secrets replaced by a prompt (`Read-Host -AsSecureString`). Run it yourself only if the user explicitly asks. Done when: the user confirms the command ran (services), or the console path's last command is running.
+4. **Install or run.** Follow the chosen path of this README in order, stopping at each decision. The user runs the final install command ([4.8](#48-create-and-start-the-service)) themselves in an elevated PowerShell: show it complete, exactly as it will run, with every variable filled in and secrets replaced by a prompt (`Read-Host -AsSecureString`). Run it yourself only if the user explicitly asks. Done when: the user confirms the command ran (services), or the console path's last command is running (the console path's `dev.ps1` takes the release and build from step 3, never run it without them).
 5. **Verify.** Do [Test the installation](#6-test-the-installation). Done when: the test passed, or every failure is reported with its log path; then list what is left for the user to do.
 
 <!-- END AGENT INSTRUCTIONS -->
