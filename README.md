@@ -481,27 +481,36 @@ You need the [requirements](#requirements) first.
    .\tools\dev\set-credentials.ps1
    ```
 
-3. **Start the connector and the MCP server.** Choose the case that fits you:
+3. **Start the connector.** It restarts on every code change. Leave this window open.
 
-   <u>A. You start from scratch.</u> Put SAP `b1-mcp-server` in a `b1-mcp-server/` folder at the repo root ([step 2](#2-add-the-mcp-server-optional)) and build it yourself. Then start both:
+   ```powershell
+   .\tools\dev\dev.ps1
+   ```
+
+   Wait until it reports it is listening on `http://127.0.0.1:50300` (check with `Test-NetConnection 127.0.0.1 -Port 50300`) before starting the MCP server.
+
+4. **Start the MCP server**, in another window. Choose the case that fits you:
+
+   <u>A. You start from scratch.</u> Put SAP `b1-mcp-server` in a `b1-mcp-server/` folder at the repo root ([step 2](#2-add-the-mcp-server-optional)). Build it once, set the [settings of step 5.1](#51-configure-the-mcp-server) in the window and run it:
 
    ```powershell
    cd b1-mcp-server
    npm install --legacy-peer-deps
    npm run build
-   cd ..
-   .\tools\dev\dev.ps1
+
+   $env:SERVICE_LAYER_ROOT_URL = 'http://127.0.0.1:50300'
+   $env:AUTHENTICATION_MODE   = 'direct'
+   $env:B1_COMPANY_DB         = 'YOUR_COMPANY_DB'
+   $env:B1_USERNAME           = 'YOUR_USER'
+   $env:B1_PASSWORD           = Read-Host 'B1 password'
+   $env:HTTPS_ENABLED         = 'false'
+   $env:PORT                  = '3100'
+   node dist\index.js
    ```
 
    Point any MCP client at `http://localhost:3100/mcp`, or try it with `npx @modelcontextprotocol/inspector`.
 
-   <u>B. You already have your own MCP server.</u> Start only the connector:
-
-   ```powershell
-   .\tools\dev\dev.ps1 -SkipMcp
-   ```
-
-   The connector listens on `http://127.0.0.1:50300`. Run your MCP server your own way and configure it as described in [step 5.1](#51-configure-the-mcp-server).
+   <u>B. You already have your own MCP server.</u> Run it your own way and configure it as described in [step 5.1](#51-configure-the-mcp-server).
 
 <br>
 <br>

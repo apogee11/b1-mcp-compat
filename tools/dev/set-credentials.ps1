@@ -1,5 +1,5 @@
 # Saves the connection details of one installation, encrypted for your Windows user, in .dev\<Name>.profile (ignored by git).
-# Running it again asks everything from scratch and overwrites that profile.
+# Running it again asks everything from scratch and overwrites that profile. At the end it runs check-credentials.ps1 on the saved profile.
 #   .\set-credentials.ps1                 # profile "default"
 #   .\set-credentials.ps1 -Name cliente2208
 param([string]$Name = 'default')
@@ -23,3 +23,6 @@ $file = Join-Path $dir "$Name.profile"
 # ConvertFrom-SecureString without a key encrypts with DPAPI: only this Windows user on this machine can read it back.
 ConvertTo-SecureString ($p | ConvertTo-Json) -AsPlainText -Force | ConvertFrom-SecureString | Set-Content $file
 Write-Host "Saved $file"
+
+# The profile stays saved even if a check fails, so a typo can be fixed by running this script again.
+& (Join-Path $PSScriptRoot 'check-credentials.ps1') -Name $Name
