@@ -1,4 +1,4 @@
-# Runs the connector from source, restarting on every code change.
+# Runs the connector from source. It does not reload on code changes: stop it (Ctrl+C) and run it again.
 #   .\dev.ps1 -Release 2208 -Build <build id>   # profile "default"; both printed by tools\collect\check-build.ps1
 #   .\dev.ps1 -Name cliente2208 -Release 2208 -Build <build id>
 #   .\dev.ps1 -SimulateLegacy          # make a native FP2608 behave as a legacy one
@@ -23,4 +23,4 @@ if ($Build) { $env:B1McpCompat__Build = $Build }
 if ($AllowUnsupportedBuild) { $env:B1McpCompat__AllowUnsupportedBuild = 'true' }
 
 Write-Host "Running profile '$Name' on $($env:B1McpCompat__Listen). Ctrl+C to stop."
-dotnet watch run --project (Join-Path $root 'compat\src\B1.Mcp.Compat.Host')
+dotnet run --project (Join-Path $root 'compat\src\B1.Mcp.Compat.Host')

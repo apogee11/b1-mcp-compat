@@ -163,7 +163,7 @@ dotnet publish compat\src\B1.Mcp.Compat.Host -c Release -r win-x64 --self-contai
 
 | To | Run |
 |---|---|
-| Run the connector from source, with reload | `tools\dev\set-credentials.ps1` once (saves a DPAPI-encrypted profile in `.dev\`), then `tools\dev\dev.ps1 [-SimulateLegacy]` |
+| Run the connector from source | `tools\dev\set-credentials.ps1` once (saves a DPAPI-encrypted profile in `.dev\`), then `tools\dev\dev.ps1 [-SimulateLegacy]` |
 | Compare against a native FP2608 | `tools\parity\run-parity.ps1`: MCP server → connector (simulating legacy) vs MCP server → native; the calls must be identical |
 | Check every entity set on any installation | `tools\e2e\e2e.ps1 -SlUrl … -Company … -User … -Exe compat\publish\B1.Mcp.Compat.Host.exe` |
 | Check a Service Layer before connecting it | `tools\collect\check-upstream.ps1` |

@@ -481,7 +481,7 @@ You need the [requirements](#requirements) first.
    .\tools\dev\set-credentials.ps1
    ```
 
-3. **Start the connector.** It restarts on every code change. Leave this window open. The release and build of your Service Layer are required: run `tools\collect\check-build.ps1` on the Service Layer server ([4.5](#45-check-b1-release-and-build)) and pass what it prints. Without `-Build` the script stops.
+3. **Start the connector.** Leave this window open; after a code change, stop it with Ctrl+C and start it again. The release and build of your Service Layer are required: run `tools\collect\check-build.ps1` on the Service Layer server ([4.5](#45-check-b1-release-and-build)) and pass what it prints. Without `-Build` the script stops.
 
    ```powershell
    .\tools\dev\dev.ps1 -Release 2608 -Build 10.0.340.0-d02489c511c7-7e3e810900f1-fe64a1a2b194
