@@ -1,11 +1,12 @@
 using System.Text.RegularExpressions;
 using B1.Mcp.Compat.Core.Catalog;
 using B1.Mcp.Compat.Core.Config;
+using B1.Mcp.Compat.Core.Read;
 using Microsoft.Data.SqlClient;
 
 namespace B1.Mcp.Compat.Data;
 
-/// <summary>SQL Server access to the company database (read only: OPFS).</summary>
+/// <summary>SQL Server access to the company database (read only: OPFS and the SELECTs of the extended read runtime).</summary>
 public sealed partial class SqlServerCompanyDatabase : ICompanyDatabase
 {
     private readonly DatabaseOptions _options;
@@ -104,6 +105,71 @@ public sealed partial class SqlServerCompanyDatabase : ICompanyDatabase
         return rows.GroupBy(r => S(r[0]), StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.Select(r => S(r[1])).ToList(), StringComparer.OrdinalIgnoreCase);
     }
+
+    public async Task<IReadOnlyList<UserFieldRow>> LoadUserFieldsAsync(string companyDb, IReadOnlyCollection<string> tables, CancellationToken ct)
+    {
+        if (tables.Count == 0) return Array.Empty<UserFieldRow>();
+        await using var c = await OpenAsync(companyDb, ct);
+        var rows = new List<UserFieldRow>();
+        try
+        {
+            var names = tables.Select((_, i) => "@T" + i).ToList();
+            await using var cmd = new SqlCommand(
+                $"SELECT TableID, FieldID, AliasID, TypeID, EditType, SizeID FROM [dbo].[CUFD] WHERE TableID IN ({string.Join(",", names)}) ORDER BY TableID, FieldID", c) { CommandTimeout = 30 };
+            var i = 0;
+            foreach (var t in tables) cmd.Parameters.Add(names[i++], System.Data.SqlDbType.NVarChar, 50).Value = t;
+            await using var r = await cmd.ExecuteReaderAsync(ct);
+            while (await r.ReadAsync(ct))
+                rows.Add(new UserFieldRow(S(r.GetValue(0)), Convert.ToInt32(r.GetValue(1)), S(r.GetValue(2)), S(r.GetValue(3)),
+                    r.IsDBNull(4) ? null : r.GetString(4), Convert.ToInt32(r.GetValue(5))));
+        }
+        catch (SqlException e)
+        {
+            throw new CompanyDatabaseException($"SQL query failed (error {e.Number}): {e.Message}", e);
+        }
+        return rows;
+    }
+
+    /// <summary>
+    /// Runs one planned SELECT with its typed parameters (the declared type of each parameter is set from its declaration, e.g. "nvarchar(254)", "numeric(25,6)").
+    /// Only statements the planner built reach here; a text that is not a SELECT is refused anyway.
+    /// </summary>
+    public async Task<IReadOnlyList<object?[]>> ReadRowsAsync(string companyDb, ReadSqlQuery query, int columns, CancellationToken ct)
+    {
+        if (!query.Sql.StartsWith("SELECT ", StringComparison.Ordinal)) throw new CompanyDatabaseException("Only SELECT statements are run by the read runtime.");
+        await using var c = await OpenAsync(companyDb, ct);
+        var rows = new List<object?[]>();
+        try
+        {
+            await using var cmd = new SqlCommand(query.Sql, c) { CommandTimeout = 30 };
+            foreach (var p in query.Params)
+            {
+                var sp = cmd.Parameters.Add(p.Name, p.DbType);
+                var m = Declared().Match(p.Declaration);
+                if (m.Groups["a"].Success)
+                {
+                    if (m.Groups["b"].Success) { sp.Precision = byte.Parse(m.Groups["a"].Value); sp.Scale = byte.Parse(m.Groups["b"].Value); }
+                    else sp.Size = int.Parse(m.Groups["a"].Value);
+                }
+                sp.Value = p.Value;
+            }
+            await using var r = await cmd.ExecuteReaderAsync(ct);
+            while (await r.ReadAsync(ct))
+            {
+                var row = new object?[columns];
+                for (var i = 0; i < columns; i++) row[i] = await r.IsDBNullAsync(i, ct) ? null : r.GetValue(i);
+                rows.Add(row);
+            }
+        }
+        catch (SqlException e)
+        {
+            throw new CompanyDatabaseException($"SQL query failed (error {e.Number}): {e.Message}", e);
+        }
+        return rows;
+    }
+
+    [GeneratedRegex(@"\((?<a>\d+|max)(?:,(?<b>\d+))?\)")]
+    private static partial Regex Declared();
 
     private static string S(object? o) => (o as string ?? o?.ToString() ?? "").Trim();
 }

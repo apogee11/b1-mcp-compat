@@ -1,4 +1,5 @@
 using B1.Mcp.Compat.Core.Catalog;
+using B1.Mcp.Compat.Core.Read;
 
 namespace B1.Mcp.Compat.Data;
 
@@ -14,4 +15,8 @@ public sealed class HanaCompanyDatabase : ICompanyDatabase
     public Task<IReadOnlyList<PersonalFieldRow>> LoadPersonalFieldsAsync(string companyDb, CancellationToken ct) => throw new NotSupportedException(Msg);
 
     public Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> LoadUserTableColumnsAsync(string companyDb, CancellationToken ct) => throw new NotSupportedException(Msg);
+
+    public Task<IReadOnlyList<UserFieldRow>> LoadUserFieldsAsync(string companyDb, IReadOnlyCollection<string> tables, CancellationToken ct) => throw new NotSupportedException(Msg);
+
+    public Task<IReadOnlyList<object?[]>> ReadRowsAsync(string companyDb, ReadSqlQuery query, int columns, CancellationToken ct) => throw new NotSupportedException(Msg);
 }

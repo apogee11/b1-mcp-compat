@@ -124,4 +124,10 @@ public interface ICompanyDatabase
 
     /// <summary>Physical columns of every user table ("@NAME" to its column names).</summary>
     Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> LoadUserTableColumnsAsync(string companyDb, CancellationToken ct);
+
+    /// <summary>Runs one SELECT planned by the extended read runtime and returns its rows (<paramref name="columns"/> values each, null for NULL). Read only.</summary>
+    /// <summary>CUFD rows of the given tables (TableID in <paramref name="tables"/>), ordered by TableID, FieldID. Read only.</summary>
+    Task<IReadOnlyList<Read.UserFieldRow>> LoadUserFieldsAsync(string companyDb, IReadOnlyCollection<string> tables, CancellationToken ct);
+
+    Task<IReadOnlyList<object?[]>> ReadRowsAsync(string companyDb, Read.ReadSqlQuery query, int columns, CancellationToken ct);
 }
