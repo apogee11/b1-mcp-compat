@@ -504,10 +504,11 @@ You need the [requirements](#requirements) first.
    $env:AUTHENTICATION_MODE   = 'direct'
    $env:B1_COMPANY_DB         = 'YOUR_COMPANY_DB'
    $env:B1_USERNAME           = 'YOUR_USER'
-   $env:B1_PASSWORD           = Read-Host 'YOUR_PASSWORD'
+   $env:B1_PASSWORD           = 'YOUR_PASSWORD'
    $env:HTTPS_ENABLED         = 'false'
    $env:PORT                  = '3100'
-   $env:MCP_ALLOWED_HOSTS     = 'localhost:3100,127.0.0.1:3100'   # must include the port: it is compared with the Host header
+   $env:MCP_ALLOWED_HOSTS     = 'localhost:3100,127.0.0.1:3100,[::1]:3100,localhost,127.0.0.1'   # must include the port: it is compared with the Host header
+   $env:MCP_HUMAN_CONFIRMATION_ENABLED = 'false'   # local only: skips the confirmation prompt before write operations
    $env:NODE_TLS_REJECT_UNAUTHORIZED = '0'   # local only: accepts the Service Layer self-signed or expired certificate
    node dist\index.js
    ```
