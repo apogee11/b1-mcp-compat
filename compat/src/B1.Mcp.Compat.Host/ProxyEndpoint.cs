@@ -34,6 +34,7 @@ public sealed partial class ProxyEndpoint
     private readonly BuildPolicy _policy;
     private readonly ILogger _log;
     private readonly TtlCache<EdmModel> _models = new(TimeSpan.FromMinutes(10));
+    private readonly TtlCache<ExtendedMetadata?> _extended = new(TimeSpan.FromMinutes(10));
     private readonly TtlCache<UserCatalog> _catalogs = new(TimeSpan.FromMinutes(5));
     private readonly TtlCache<IReadOnlyList<PersonalFieldRow>> _personal = new(TimeSpan.FromMinutes(5));
     private bool? _native;
@@ -86,6 +87,7 @@ public sealed partial class ProxyEndpoint
                 await ServeMetadataAsync(ctx);
                 return;
             }
+            if (HttpMethods.IsGet(req.Method) && MetadataPath().IsMatch(path) && !req.Query.ContainsKey("scope") && await TryServePlainMetadataAsync(ctx)) return;
             if (HttpMethods.IsPost(req.Method) && PersonalPath().IsMatch(path))
             {
                 await ServePersonalAsync(ctx);
@@ -166,7 +168,10 @@ public sealed partial class ProxyEndpoint
         {
             var model = await ModelAsync(ctx, company);
             var catalog = new LazyCatalog(ct => _catalogs.GetAsync(company, () => LoadUserCatalogAsync(ctx, company)));
-            var xml = await synth.BuildAsync(q, model, catalog, s => _log.LogWarning("Entity set {Name} skipped from the list: not in the knowledge base and not a user table/object of {Company}", s, company), ctx.RequestAborted);
+            // the sets of the extended read package this Service Layer does not expose are announced too (same exactness conditions as the read itself)
+            var ext = PackageFor(decision) is { } package ? await ExtendedAsync(ctx, company, package, model) : null;
+            if (ext != null) ev["b1.extended_sets"] = ext.Announced.Count;
+            var xml = await synth.BuildAsync(q, model, catalog, s => _log.LogWarning("Entity set {Name} skipped from the list: not in the knowledge base and not a user table/object of {Company}", s, company), ctx.RequestAborted, ext);
             ctx.Response.StatusCode = 200;
             ctx.Response.ContentType = "application/xml;odata.metadata=minimal;charset=utf-8";
             await ctx.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(xml), ctx.RequestAborted);
@@ -193,6 +198,35 @@ public sealed partial class ProxyEndpoint
         return EdmModel.Parse(await r.Content.ReadAsStringAsync(ctx.RequestAborted));
     });
 
+    /// <summary>The package of the exact declared build, or null: the package is SQL against physical tables, used only for the build it was generated from.</summary>
+    private ReadPackage? PackageFor(BuildDecision decision) =>
+        decision.Ok && decision.Verified && _readPackages.TryGetValue(decision.Release!, out var package) && package.Build.BuildId == _policy.Build ? package : null;
+
+    private async Task<ExtendedMetadata?> ExtendedAsync(HttpContext ctx, string company, ReadPackage package, EdmModel model) =>
+        await _extended.GetAsync(company, () => Task.FromResult(ExtendedMetadata.Build(package, model)));
+
+    /// <summary>The plain $metadata of the Service Layer plus the sets of the extended read package it does not expose. Any doubt means passthrough.</summary>
+    private async Task<bool> TryServePlainMetadataAsync(HttpContext ctx)
+    {
+        if (_readPackages.Count == 0) return false;
+        var sid = SessionOf(ctx);
+        var company = CompanyOf(ctx);
+        if (!_sessions.Knows(sid) || company == null) return false;
+        if (PackageFor(_policy.Resolve(_sessions.VersionFor(sid))) is not { } package) return false;
+        EdmModel model;
+        try { model = await ModelAsync(ctx, company); }
+        catch (UpstreamStatusException) { return false; }
+        if (await ExtendedAsync(ctx, company, package, model) is not { } ext) return false;
+        var ev = Wide(ctx);
+        ev["kind"] = "extended_metadata";
+        ev["b1.company_db"] = company;
+        ev["b1.extended_sets"] = ext.Announced.Count;
+        ctx.Response.StatusCode = 200;
+        ctx.Response.ContentType = "application/xml;charset=utf-8";
+        await ctx.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(ext.ToXml()), ctx.RequestAborted);
+        return true;
+    }
+
     // ------------------------------------------------------------ extended read
 
     [GeneratedRegex(@"odata\.maxpagesize=(\d+)", RegexOptions.IgnoreCase)] private static partial Regex MaxPageSize();
@@ -213,8 +247,7 @@ public sealed partial class ProxyEndpoint
         var company = CompanyOf(ctx);
         if (!_sessions.Knows(sid) || company == null) return false;   // reads bypass the Service Layer: only for sessions the connector saw log in
         var decision = _policy.Resolve(_sessions.VersionFor(sid));
-        // The package is SQL against physical tables: it is used only for the exact build it was generated from.
-        if (!decision.Ok || !decision.Verified || !_readPackages.TryGetValue(decision.Release!, out var package) || package.Build.BuildId != _policy.Build) return false;
+        if (PackageFor(decision) is not { } package) return false;
         if (package.Resolve(name) is { Set: null, Unavailable: null }) return false;
         EdmModel model;
         try { model = await ModelAsync(ctx, company); }

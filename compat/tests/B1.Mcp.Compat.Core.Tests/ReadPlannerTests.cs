@@ -86,8 +86,8 @@ public class ReadPackageTests
     [Fact]
     public void RejectsUnknownSchemaVersion()
     {
-        var e = Assert.Throws<InvalidDataException>(() => ReadPackage.Load(new MemoryStream(Encoding.UTF8.GetBytes("""{"schemaVersion":2}"""))));
-        Assert.Contains("schemaVersion 2", e.Message);
+        var e = Assert.Throws<InvalidDataException>(() => ReadPackage.Load(new MemoryStream(Encoding.UTF8.GetBytes("""{"schemaVersion":3}"""))));
+        Assert.Contains("schemaVersion 3", e.Message);
         Assert.Throws<InvalidDataException>(() => ReadPackage.Load(new MemoryStream(Encoding.UTF8.GetBytes("{}"))));
     }
 

@@ -46,16 +46,17 @@ public class ReadServiceTests
         Assert.Equal(ReadAction.Serve, Route("GET", path).Action);
 
     [Theory]
-    [InlineData("Things")]
-    [InlineData("Thingies")]
-    public void ASetTheSlAlreadyServesIsNeverIntercepted(string slName)
+    [InlineData("Things", "Thingies")]
+    [InlineData("Thingies", "Things")]
+    public void ASetTheSlAlreadyServesIsNeverInterceptedUnderThatExactName(string slName, string other)
     {
-        // the SL exposes the set under one of its names: neither GET nor writes on any of its names are ours
-        foreach (var path in new[] { "/b1s/v2/Things", "/b1s/v2/Thingies", "/b1s/v2/Things('A1')" })
+        // the SL exposes the name it exposes: neither GET nor writes on that name are ours; the other name of the same set is judged on its own
+        foreach (var path in new[] { $"/b1s/v2/{slName}", $"/b1s/v2/{slName}('A1')" })
         {
             Assert.Equal(ReadAction.Passthrough, Route("GET", path, n => n == slName).Action);
             Assert.Equal(ReadAction.Passthrough, Route("POST", path, n => n == slName).Action);
         }
+        Assert.Equal(ReadAction.Serve, Route("GET", $"/b1s/v2/{other}", n => n == slName).Action);
     }
 
     [Fact]

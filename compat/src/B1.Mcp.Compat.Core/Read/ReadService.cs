@@ -9,8 +9,8 @@ public enum ReadAction { Passthrough, Serve, Reject }
 public sealed record ReadRouteResult(ReadAction Action, ReadException? Error = null);
 
 /// <summary>
-/// Whether a request is ours. Only /b1s/v2 and only a set of the package that the Service Layer does not expose itself (by any of its names):
-/// what the Service Layer serves is never intercepted, and without a package nothing is.
+/// Whether a request is ours. Only /b1s/v2 and only a set of the package that the Service Layer does not expose itself under the exact name asked
+/// (each alias is judged on its own name): what the Service Layer serves is never intercepted, and without a package nothing is.
 /// </summary>
 public static class ReadRoute
 {
@@ -34,7 +34,7 @@ public static class ReadRoute
         if (package == null || name == null) return pass;
         var r = package.Resolve(name);
         if (r.Set == null && r.Unavailable == null) return pass;
-        if (package.NamesOf(name).Any(slExposes)) return pass;
+        if (slExposes(name)) return pass;   // by the exact name asked: DeductibleTaxs may be the SL's own while DeductibleTaxes is not
         if (method.Equals("GET", StringComparison.OrdinalIgnoreCase)) return new(ReadAction.Serve);
         var refused = ReadGate.Decide(package, method, name);
         return refused == null ? pass : new(ReadAction.Reject, refused);

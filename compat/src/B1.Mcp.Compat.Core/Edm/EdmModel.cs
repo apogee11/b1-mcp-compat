@@ -49,6 +49,8 @@ public sealed class EdmModel
 
     public static EdmModel Parse(string xml) => new(XDocument.Parse(xml));
 
+    public static EdmModel FromDocument(XDocument doc) => new(doc);
+
     /// <summary>Strips Collection(...) and the SAPB1. namespace from a property type.</summary>
     public static string ShortType(string type)
     {

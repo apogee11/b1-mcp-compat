@@ -58,8 +58,10 @@ public sealed class MetadataSynthesizer
 
     private sealed record SetInfo(string? Label, string Table, UserObject? Udo, bool UserSet);
 
-    public async Task<string> BuildAsync(MetadataQuery q, EdmModel full, LazyCatalog catalog, Action<string>? onSkipped, CancellationToken ct)
+    /// <param name="ext">The sets of the extended read package this Service Layer does not expose (rea/19): when given, its model replaces <paramref name="full"/> and their facts come from the package.</param>
+    public async Task<string> BuildAsync(MetadataQuery q, EdmModel full, LazyCatalog catalog, Action<string>? onSkipped, CancellationToken ct, ExtendedMetadata? ext = null)
     {
+        if (ext != null) full = ext.Model;
         var schema = new XElement(EdmModel.Ns + "Schema", new XAttribute("Namespace", "SAPB1"));
         foreach (var (name, applies, desc) in new[]
         {
@@ -80,7 +82,7 @@ public sealed class MetadataSynthesizer
             foreach (var s in full.Sets)
             {
                 var name = (string)s.Attribute("Name")!;
-                var info = await ResolveSetAsync(name, catalog, ct);
+                var info = await ResolveSetAsync(name, catalog, ct, ext);
                 if (info == null) { onSkipped?.Invoke(name); continue; }
                 container.Add(AnnotatedSet(s, info, q));
             }
@@ -89,9 +91,10 @@ public sealed class MetadataSynthesizer
         else
         {
             if (!full.SetsByName.TryGetValue(q.EntitySet, out var setEl)) throw new EntitySetNotFoundException(q.EntitySet);
-            var info = await ResolveSetAsync(q.EntitySet, catalog, ct)
+            var info = await ResolveSetAsync(q.EntitySet, catalog, ct, ext)
                 ?? throw new UnresolvedMappingException(q.EntitySet, new[] { new UnresolvedItem("entity", q.EntitySet, null, q.EntitySet, null) });
-            await BuildScopedAsync(q, full, catalog, q.EntitySet, setEl, info, schema, ct);
+            // a set announced under a name the Service Layer lacks but with the Service Layer's own type (DeductibleTaxes): its facts are those of the set it lists (DeductibleTaxs)
+            await BuildScopedAsync(q, full, catalog, ext?.NativeAliasOf(q.EntitySet) ?? q.EntitySet, setEl, info, schema, ct, ext);
         }
         return Serialize(schema);
     }
@@ -104,8 +107,10 @@ public sealed class MetadataSynthesizer
         return c;
     }
 
-    private async Task<SetInfo?> ResolveSetAsync(string name, LazyCatalog catalog, CancellationToken ct)
+    private async Task<SetInfo?> ResolveSetAsync(string name, LazyCatalog catalog, CancellationToken ct, ExtendedMetadata? ext = null)
     {
+        if (ext != null && ext.Announced.TryGetValue(name, out var pset))
+            return ext.NativeAliasOf(name) is { } native ? await ResolveSetAsync(native, catalog, ct) : new SetInfo(pset.Label, pset.Table, null, false);
         var o = _ov.FindEntity(name);
         if (o?.Table != null) return new SetInfo(o.Label ?? name, o.Table, null, false);
         if (_kb.Sets.TryGetValue(name, out var ks) && ks.Table != null) return new SetInfo(ks.Label, ks.Table, null, false);
@@ -120,7 +125,7 @@ public sealed class MetadataSynthesizer
         return null;
     }
 
-    private async Task BuildScopedAsync(MetadataQuery q, EdmModel full, LazyCatalog catalog, string setName, XElement setEl, SetInfo info, XElement schema, CancellationToken ct)
+    private async Task BuildScopedAsync(MetadataQuery q, EdmModel full, LazyCatalog catalog, string setName, XElement setEl, SetInfo info, XElement schema, CancellationToken ct, ExtendedMetadata? ext = null)
     {
         var unresolved = new List<UnresolvedItem>();
         var root = EdmModel.ShortType((string)setEl.Attribute("EntityType")!);
@@ -151,7 +156,9 @@ public sealed class MetadataSynthesizer
                     var pn = (string)p.Attribute("Name")!;
                     var ptype = EdmModel.ShortType((string?)p.Attribute("Type") ?? "");
                     var structured = full.IsStructured(ptype);
-                    var (verdict, kp) = await DecideAsync(setName, tn, pn, ptype, structured, tabs, blob, info, catalog, ct);
+                    var (verdict, kp) = ext != null && ext.IsInjected(tn) && ext.PropertyOf(tn, pn) is { } pkp
+                        ? (Verdict.Annotate, pkp)   // type and annotations of the package (native 2608 capture)
+                        : await DecideAsync(setName, tn, pn, ptype, structured, tabs, blob, info, catalog, ct);
                     if (verdict == Verdict.Drop)
                     {
                         // Observed natively: an omitted property still pulls its enum type into the answer (but not its structured type).
@@ -173,6 +180,9 @@ public sealed class MetadataSynthesizer
                         if (seen.Add(ptype)) queue.Enqueue(ptype);
                     }
                 }
+                // Observed natively: properties left out still pull their enum in (dependency=true); the package records which.
+                if (q.Dependency && ext != null && ext.IsInjected(tn))
+                    foreach (var pe in ext.PulledEnumsOf(tn)) if (seen.Add(pe)) { queue.Enqueue(pe); }
                 if (q.Dependency && (string?)tdef.Attribute("BaseType") is { } bt)
                 {
                     var b = EdmModel.ShortType(bt);
@@ -194,7 +204,8 @@ public sealed class MetadataSynthesizer
                 {
                     var mn = (string)m.Attribute("Name")!;
                     string? val = _ov.FindEnumValue(en, mn);
-                    if (val == null)
+                    if (val == null && ext != null && ext.IsInjectedEnum(en)) val = ext.ValidValueOf(en, mn);
+                    if (val == null && !(ext != null && ext.IsInjectedEnum(en)))
                     {
                         if (known != null && known.TryGetValue(mn, out var kv)) val = kv;
                         // A member without a stored database value is answered without ValidValue, like the KB's null facts.
