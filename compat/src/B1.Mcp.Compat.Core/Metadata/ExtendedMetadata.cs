@@ -72,7 +72,13 @@ public sealed class ExtendedMetadata
             foreach (var en in t.PullsEnums ?? new()) if (!plain.Types.ContainsKey(en)) enums.Add(en);
         }
 
-        InsertAfterLast(schema, "EnumType", edm.Enums.Where(e => enums.Contains(e.Key)).OrderBy(e => e.Key, StringComparer.Ordinal).Select(e => EnumElement(e.Key, e.Value)));
+        // the native flat $metadata lists the enums in ordinal name order (measured on the 2608: 530 of 530; the engine keeps them in a std::map), so each goes to its place
+        foreach (var e in edm.Enums.Where(e => enums.Contains(e.Key)).OrderBy(e => e.Key, StringComparer.Ordinal))
+        {
+            var el = EnumElement(e.Key, e.Value);
+            var next = schema.Elements(EdmModel.Ns + "EnumType").FirstOrDefault(x => string.CompareOrdinal((string?)x.Attribute("Name"), e.Key) > 0);
+            if (next != null) next.AddBeforeSelf(el); else InsertAfterLast(schema, "EnumType", new[] { el });
+        }
         InsertAfterLast(schema, "ComplexType", edm.Types.Where(t => t.Value.Kind == "complex" && types.Contains(t.Key)).OrderBy(t => t.Key, StringComparer.Ordinal).Select(t => TypeElement(t.Key, t.Value)));
         InsertAfterLast(schema, "EntityType", edm.Types.Where(t => t.Value.Kind == "entity" && types.Contains(t.Key)).OrderBy(t => t.Key, StringComparer.Ordinal).Select(t => TypeElement(t.Key, t.Value)));
         var nativeAlias = new Dictionary<string, string>(StringComparer.Ordinal);

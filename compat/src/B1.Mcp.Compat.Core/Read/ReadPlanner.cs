@@ -399,7 +399,11 @@ public static partial class ReadPlanner
                 var col = env.Exposed(c.Property);
                 env.Touch(col);
                 if (c.Value.Kind == ReadLitKind.Null)
-                    return c.Op == "eq" ? $"T0.[{col.Name}] IS NULL" : throw ReadException.NotMeasured($"'{c.Op} null'");
+                {
+                    // measured on the native 2608 (SQL by Extended Events): eq null is IS NULL, ne null is IS NOT NULL; lt/le/gt/ge is a 400
+                    if (c.Op is not ("eq" or "ne")) throw ReadException.Query("Query string error - not allowed operation on 'null'");
+                    return c.Op == "eq" ? $"T0.[{col.Name}] IS NULL" : $"T0.[{col.Name}] IS NOT NULL";
+                }
                 if (CKind(env, col) == CK.Enum && c.Op is not ("eq" or "ne")) throw ReadException.NotMeasured($"'{c.Op}' on enum '{c.Property}'");
                 var sym = c.Op switch { "eq" => "=", "ne" => "<>", "lt" => "<", "le" => "<=", "gt" => ">", _ => ">=" };
                 return $"T0.[{col.Name}] {sym} ({Typed(env, col, c.Value, bag)})";

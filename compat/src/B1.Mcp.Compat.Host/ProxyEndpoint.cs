@@ -173,7 +173,8 @@ public sealed partial class ProxyEndpoint
             if (ext != null) ev["b1.extended_sets"] = ext.Announced.Count;
             var xml = await synth.BuildAsync(q, model, catalog, s => _log.LogWarning("Entity set {Name} skipped from the list: not in the knowledge base and not a user table/object of {Company}", s, company), ctx.RequestAborted, ext);
             ctx.Response.StatusCode = 200;
-            ctx.Response.ContentType = "application/xml;odata.metadata=minimal;charset=utf-8";
+            ctx.Response.ContentType = XmlType;
+            ctx.Response.Headers["OData-Version"] = ODataVersion;
             await ctx.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(xml), ctx.RequestAborted);
         }
         catch (UnresolvedMappingException e)
@@ -222,14 +223,14 @@ public sealed partial class ProxyEndpoint
         ev["b1.company_db"] = company;
         ev["b1.extended_sets"] = ext.Announced.Count;
         ctx.Response.StatusCode = 200;
-        ctx.Response.ContentType = "application/xml;charset=utf-8";
+        ctx.Response.ContentType = XmlType;   // measured against the native 2608: same type as the scoped $metadata, whatever the Accept header
+        ctx.Response.Headers["OData-Version"] = ODataVersion;
         await ctx.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(ext.ToXml()), ctx.RequestAborted);
         return true;
     }
 
     // ------------------------------------------------------------ extended read
 
-    [GeneratedRegex(@"odata\.maxpagesize=(\d+)", RegexOptions.IgnoreCase)] private static partial Regex MaxPageSize();
 
     /// <summary>
     /// Extended read (rea/19 4): a /b1s/v2 request on a set of the read package of this build that the Service Layer does not expose.
@@ -264,16 +265,22 @@ public sealed partial class ProxyEndpoint
             await WriteJsonAsync(ctx, route.Error!.Status, route.Error.ToJson());
             return true;
         }
-        var size = MaxPageSize().Match(req.Headers["Prefer"].ToString()) is { Success: true } m ? int.Parse(m.Groups[1].Value) : 20;
         try
         {
+            var size = PageSizeRule.Resolve(req.Headers.TryGetValue("Prefer", out var pf) ? pf.ToString() : null,
+                req.Headers.TryGetValue("B1S-PageSize", out var bp) ? bp.ToString() : null, _o.PageSize);
             var self = $"{req.Scheme}://{req.Host}/b1s/v2";
             var result = await ReadService.GetAsync(package, _db, company, path[ "/b1s/v2/".Length..] + req.QueryString, self, size, ctx.RequestAborted);
             ev["b1.table"] = package.Resolve(name).Set?.Table;
             if (result.Status >= 400) Wide(ctx)["response_body"] = Truncate(result.Body);
             ctx.Response.StatusCode = result.Status;
             ctx.Response.ContentType = result.ContentType;
+            ctx.Response.Headers["OData-Version"] = ODataVersion;
             await ctx.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(result.Body), ctx.RequestAborted);
+        }
+        catch (ReadException e)
+        {
+            await WriteJsonAsync(ctx, e.Status, e.ToJson());
         }
         catch (Exception e) when (e is CompanyDatabaseException or NotSupportedException)
         {
@@ -378,6 +385,7 @@ public sealed partial class ProxyEndpoint
             var json = PersonalFieldMapper.ToJson(rows, table, release, $"{ctx.Request.Scheme}://{ctx.Request.Host}");
             ctx.Response.StatusCode = 200;
             ctx.Response.ContentType = "application/json;odata.metadata=minimal;charset=utf-8";
+            ctx.Response.Headers["OData-Version"] = ODataVersion;
             await ctx.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(json), ctx.RequestAborted);
         }
         catch (Exception e) when (e is CompanyDatabaseException or NotSupportedException)
@@ -503,6 +511,9 @@ public sealed partial class ProxyEndpoint
 
     private static string ErrorJson(string message) =>
         JsonSerializer.Serialize(new { error = new { code = -1, message = new { lang = "en-us", value = message } } });
+
+    private const string XmlType = "application/xml;odata.metadata=minimal;charset=utf-8";
+    private const string ODataVersion = "4.0";
 
     private static async Task WriteJsonAsync(HttpContext ctx, int status, string json)
     {

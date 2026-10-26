@@ -19,6 +19,9 @@ public sealed class CompatOptions
     /// <summary>false (default): a build without knowledge base is an error with a fixed message. true: serve it with the knowledge base of the same release, log a warning, do not claim verification.</summary>
     public bool AllowUnsupportedBuild { get; set; }
 
+    /// <summary>Page size of an extended read when the request does not ask for one. Mirror of the PageSize key of the Service Layer's b1s.conf (the connector cannot read that file: the Service Layer is another machine). 20 is the native default when the key is absent; 0 or less: no paging.</summary>
+    public int PageSize { get; set; } = 20;
+
     public ServiceLayerOptions ServiceLayer { get; set; } = new();
     public DatabaseOptions Database { get; set; } = new();
     public MappingsOptions Mappings { get; set; } = new();

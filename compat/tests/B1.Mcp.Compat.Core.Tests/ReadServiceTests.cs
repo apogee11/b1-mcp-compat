@@ -7,7 +7,7 @@ namespace B1.Mcp.Compat.Core.Tests;
 /// <summary>Routing (what is intercepted) and execution (plan, rows, JSON, errors) of the extended read, over the synthetic package and a fake database: no SQL Server involved.</summary>
 public class ReadServiceTests
 {
-    private sealed class FakeDb : ICompanyDatabase
+    internal sealed class FakeDb : ICompanyDatabase
     {
         public List<ReadSqlQuery> Queries { get; } = new();
         public Func<ReadSqlQuery, IReadOnlyList<object?[]>> Rows { get; set; } = _ => Array.Empty<object?[]>();
