@@ -189,8 +189,8 @@ public class ReadParityTests
     // user fields of the 2608 demo (CUFD rows, TypeID/EditType/SizeID as stored)
     private static readonly UserFieldRow[] DemoUdf =
     {
-        new("OITM", 0, "SBOCTXM", "M", null, 8), new("OITM", 1, "MAPI", "A", null, 10), new("OITM", 2, "SBOMAPI", "A", null, 10),
-        new("OWHS", 0, "MAPW", "A", null, 10), new("OWHS", 1, "SBOMAPW", "A", null, 10),
+        new("OITM", 0, "SBOCTXM", "M", null, 8, "ntext"), new("OITM", 1, "MAPI", "A", null, 10, "nvarchar(10)"), new("OITM", 2, "SBOMAPI", "A", null, 10, "nvarchar(10)"),
+        new("OWHS", 0, "MAPW", "A", null, 10, "nvarchar(10)"), new("OWHS", 1, "SBOMAPW", "A", null, 10, "nvarchar(10)"),
     };
 
     /// <summary>Items and Warehouses are not in the 2408 package (the Service Layer exposes them): a package with the columns of the captured statement minus the user fields stands in for them.</summary>

@@ -115,13 +115,16 @@ public sealed partial class SqlServerCompanyDatabase : ICompanyDatabase
         {
             var names = tables.Select((_, i) => "@T" + i).ToList();
             await using var cmd = new SqlCommand(
-                $"SELECT TableID, FieldID, AliasID, TypeID, EditType, SizeID FROM [dbo].[CUFD] WHERE TableID IN ({string.Join(",", names)}) ORDER BY TableID, FieldID", c) { CommandTimeout = 30 };
+                $"SELECT U.TableID, U.FieldID, U.AliasID, U.TypeID, U.EditType, U.SizeID, TY.name, C.max_length, C.precision, C.scale FROM [dbo].[CUFD] U " +
+                $"LEFT JOIN sys.columns C ON C.object_id = OBJECT_ID(N'[dbo].[' + RTRIM(U.TableID) + N']') AND C.name = N'U_' + RTRIM(U.AliasID) " +
+                $"LEFT JOIN sys.types TY ON TY.user_type_id = C.user_type_id WHERE U.TableID IN ({string.Join(",", names)}) ORDER BY U.TableID, U.FieldID", c) { CommandTimeout = 30 };
             var i = 0;
             foreach (var t in tables) cmd.Parameters.Add(names[i++], System.Data.SqlDbType.NVarChar, 50).Value = t;
             await using var r = await cmd.ExecuteReaderAsync(ct);
             while (await r.ReadAsync(ct))
                 rows.Add(new UserFieldRow(S(r.GetValue(0)), Convert.ToInt32(r.GetValue(1)), S(r.GetValue(2)), S(r.GetValue(3)),
-                    r.IsDBNull(4) ? null : r.GetString(4), Convert.ToInt32(r.GetValue(5))));
+                    r.IsDBNull(4) ? null : r.GetString(4), Convert.ToInt32(r.GetValue(5)),
+                    r.IsDBNull(6) ? null : PhysicalType(r.GetString(6), Convert.ToInt32(r.GetValue(7)), Convert.ToInt32(r.GetValue(8)), Convert.ToInt32(r.GetValue(9)))));
         }
         catch (SqlException e)
         {
@@ -129,6 +132,15 @@ public sealed partial class SqlServerCompanyDatabase : ICompanyDatabase
         }
         return rows;
     }
+
+    /// <summary>Physical type of a column as sys.columns gives it: "nvarchar(100)" (max_length is in bytes, 2 per character), "numeric(19,6)", "int", "ntext"; -1 length is "max".</summary>
+    private static string PhysicalType(string name, int maxLength, int precision, int scale) => name.ToLowerInvariant() switch
+    {
+        "nvarchar" or "nchar" => $"{name}({(maxLength < 0 ? "max" : (maxLength / 2).ToString(System.Globalization.CultureInfo.InvariantCulture))})",
+        "varchar" or "char" => $"{name}({(maxLength < 0 ? "max" : maxLength.ToString(System.Globalization.CultureInfo.InvariantCulture))})",
+        "numeric" or "decimal" => $"{name}({precision},{scale})",
+        _ => name,
+    };
 
     /// <summary>
     /// Runs one planned SELECT with its typed parameters (the declared type of each parameter is set from its declaration, e.g. "nvarchar(254)", "numeric(25,6)").

@@ -30,7 +30,21 @@ public class UserFieldsTests
         public Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> LoadUserTableColumnsAsync(string companyDb, CancellationToken ct) => throw new NotSupportedException();
     }
 
-    private static UserFieldRow U(string table, int id, string alias, string type, string? edit, int size) => new(table, id, alias, type, edit, size);
+    // default physical type = what sys.columns shows for the combinations of the 2608 demo (645 user fields); a test passes its own to override
+    private static UserFieldRow U(string table, int id, string alias, string type, string? edit, int size, string? physical = "default")
+    {
+        physical = physical != "default" ? physical : (type, size) switch
+        {
+            ("A", 1) => "char(1)",
+            ("A", _) => $"nvarchar({size})",
+            ("B", _) => "numeric(19,6)",
+            ("D", _) => "datetime",
+            ("M", _) => "ntext",
+            ("N", _) => "int",
+            _ => null,
+        };
+        return new(table, id, alias, type, edit, size, physical);
+    }
 
     // the combinations measured on the 2608 demo (645 user fields): TypeID/EditType/SizeID to the physical type
     [Theory]
@@ -50,14 +64,35 @@ public class UserFieldsTests
         Assert.Equal("U_X1", c.Json!.Property);
     }
 
+    // the JSON follows the engine letter (TypeID, and N+T), not the EditType: B is a double with any EditType, D with T stays a date
     [Theory]
-    [InlineData("B", "P", 16)]   // other edit types of B: not measured
-    [InlineData("D", "T", 8)]    // time: not measured
-    [InlineData("N", null, 6)]   // numeric of another size: not measured
-    [InlineData("Z", null, 3)]
-    public void UnmeasuredCombinationsStayPending(string type, string? edit, int size)
+    [InlineData("B", "P", 16, "numeric(19,6)")]
+    [InlineData("B", "R", 16, "numeric(19,6)")]
+    [InlineData("B", "Q", 16, "numeric(19,6)")]
+    [InlineData("B", "%", 16, "numeric(19,6)")]
+    [InlineData("B", "S", 16, "numeric(11,2)")]
+    [InlineData("D", "T", 8, "datetime")]
+    [InlineData("N", null, 6, "smallint")]
+    [InlineData("N", "T", 6, "smallint")]
+    [InlineData("A", "R", 30, "nvarchar(30)")]
+    public void TheEngineLetterDecidesNotTheEditType(string type, string? edit, int size, string physical)
     {
-        var c = UserFields.Column(U("OTHG", 0, "X1", type, edit, size));
+        var c = UserFields.Column(U("OTHG", 0, "X1", type, edit, size, physical));
+        Assert.Null(c.SqlTypePending);
+        Assert.Equal(physical, c.SqlType);
+        Assert.Equal(type == "N" && edit == "T" ? "Edm.TimeOfDay" : null, c.Json!.EdmType);
+    }
+
+    [Theory]
+    [InlineData("D", "T", 8, "smallint")]   // a date letter on a non-date column: the engine reads a date from it, not measured
+    [InlineData("B", "P", 16, "float")]
+    [InlineData("N", null, 11, "bigint")]
+    [InlineData("M", null, 8, "image")]
+    [InlineData("A", null, 10, null)]       // no column in the table
+    [InlineData("Z", null, 3, "int")]       // a letter the engine does not serialize
+    public void CombinationsNotMeasuredStayPending(string type, string? edit, int size, string? physical)
+    {
+        var c = UserFields.Column(U("OTHG", 0, "X1", type, edit, size, physical));
         Assert.NotNull(c.SqlTypePending);
         Assert.Equal("", c.SqlType);
     }
@@ -113,10 +148,10 @@ public class UserFieldsTests
     public async Task UserFieldWithAnUnmeasuredTypeIsAnErrorWhenRead()
     {
         var db = new FakeDb();
-        db.Udf.Add(U("OTHG", 0, "TIM", "D", "T", 8));
+        db.Udf.Add(U("OTHG", 0, "TIM", "D", "T", 8, "smallint"));
         var r = await ReadService.GetAsync(ReadTestData.Pkg(), db, "CMP", "Things?$select=Code,U_TIM&$top=1", "https://h/b1s/v2", 20, default);
         Assert.Equal(501, r.Status);
-        Assert.Contains("udf-type-D-edit-T-size-8", r.Body);
+        Assert.Contains("udf-type-D-edit-T-size-8-physical-smallint", r.Body);
         Assert.Empty(db.Queries);
         // not read: the rest of the columns still work
         var ok = await ReadService.GetAsync(ReadTestData.Pkg(), new FakeDb { Rows = _ => new[] { new object?[] { "A1" } } }, "CMP", "Things?$select=Code&$top=1", "https://h/b1s/v2", 20, default);
