@@ -370,6 +370,7 @@ The MCP server must send its requests to the connector, not to the real Service 
 | `HTTPS_ENABLED` | As fits your needs |
 | `AUTH_ALLOW_SELF_SIGNED` | As fits your needs |
 | `PORT` | As fits your needs |
+| `MCP_RATE_LIMIT_MAX` | Requests per minute. The default is 120, too low for real use. Suggested: `5000` for local, `100000` for production |
 
 #### 5.2 Run it as a Windows service (suggested)
 
@@ -408,6 +409,7 @@ $mcpVars = @(
   'AUTHENTICATION_MODE=direct'
   'HTTPS_ENABLED=false'
   'PORT=3000'
+  'MCP_RATE_LIMIT_MAX=100000'
   'B1_COMPANY_DB=COMPANYDB'
   'B1_USERNAME=svc_mcp'
   "B1_PASSWORD=$mcpPassword"
@@ -509,6 +511,7 @@ You need the [requirements](#requirements) first.
    $env:PORT                  = '3100'
    $env:MCP_ALLOWED_HOSTS     = 'localhost:3100,127.0.0.1:3100,[::1]:3100,localhost,127.0.0.1'   # must include the port: it is compared with the Host header
    $env:MCP_HUMAN_CONFIRMATION_ENABLED = 'false'   # local only: skips the confirmation prompt before write operations
+   $env:MCP_RATE_LIMIT_MAX    = '5000'   # requests per minute (the default is 120, too low for real use)
    $env:NODE_TLS_REJECT_UNAUTHORIZED = '0'   # local only: accepts the Service Layer self-signed or expired certificate
    node dist\index.js
    ```
