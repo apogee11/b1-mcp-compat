@@ -20,6 +20,7 @@ flowchart LR
 |---|---|
 | `GET /b1s/v2/$metadata?scope=entityset&annotation=…` | The Service Layer's own plain `$metadata`, plus annotations. **Standard** objects: the knowledge base. **Customer-defined** ones (user fields, user tables, user objects): the Service Layer's `UserFieldsMD`, `UserTablesMD` and `UserObjectsMD`, read with the caller's session |
 | `POST /b1s/v2/PersonalFieldsSetupsService_GetPersonalFieldsByTable` | The company's `OPFS` table, selected exactly like the native action (see [Personal data](#personal-data)) |
+| `GET /b1s/v2/<Set>`, `<Set>(key)`, `<Set>/$count` of a set that the Service Layer does not expose | The company database, planned from the embedded **read package** of the exact build (`Resources/read-<package>.json.gz`; see [Extended read](#extended-read)). `POST`/`PATCH`/`DELETE` on those sets: refused (read only) |
 | Anything else | Passed through untouched (cookies, bodies, status) |
 
 Unresolved cases follow the native Service Layer where that is verified: a user field (`U_`) missing from the user catalog of a known table is left out, like the native engine does; an enum member without a stored value is served without `ValidValue`. If a standard property is in neither the knowledge base nor the override file, or a user-table column or child is not explained by the catalog, that entity set alone fails with HTTP 502 naming the property and the line to add to `mappings.override.json` (native behaviour not verified for those; nothing is guessed). The personal-data action fails closed.
@@ -69,6 +70,15 @@ For a version or a patch level without a knowledge base (or when a 502 shows pro
    ```
    It must end in `READY`: `UserFieldsMD`, `UserTablesMD` and `UserObjectsMD` readable, their `U_*` fields equal to the plain `$metadata`, and (with `-SqlServer`) `OPFS` readable. Note the version code of the `Login` it prints.
 2. **Run `tools/collect/check-build.ps1`** on the Service Layer server ([Check your build](../docs/guides/check-your-build.md)) and set the `B1McpCompat__Release` and `B1McpCompat__Build` it prints. If the result is `DISTINTA` or `NO CUBIERTA`, send its output to the maintainer; meanwhile `B1McpCompat__AllowUnsupportedBuild=true` serves the knowledge base of the same release, unverified.
+
+## Extended read
+
+Sets that exist only in newer Service Layers (and whose tables exist in the installed build) are read from the company database. Only `/b1s/v2`; `/v1` is always passthrough.
+
+- **The package** is selected like the knowledge base (Login `Version` plus the declared `B1McpCompat__Build`), but only for the exact build it was generated from (`build.buildId` must equal the declared build). Without a package, for an unverified build, or for a session the connector did not see log in, nothing is intercepted: the request goes to the Service Layer as before.
+- **A set is intercepted only if the Service Layer does not expose it**: its plain `$metadata` (the cached one of the metadata synthesis) lists neither the set nor any alias of it. If `$metadata` cannot be read, the request is passed through.
+- **Database access** is the one of the personal-data feature (`B1McpCompat__Database__*`); only the SELECTs planned from the package are run, always parameterised. It does not apply the B1 authorizations of the user.
+- A set whose table is missing in the build answers 400 naming the table. A shape without a measured rule answers 501 instead of being guessed.
 
 ## Personal data
 
