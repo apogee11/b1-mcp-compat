@@ -11,6 +11,7 @@ using B1.Mcp.Compat.Core.Kb;
 using B1.Mcp.Compat.Core.Mappings;
 using B1.Mcp.Compat.Core.Metadata;
 using B1.Mcp.Compat.Core.Personal;
+using B1.Mcp.Compat.Core.Read;
 
 namespace B1.Mcp.Compat.Host;
 
@@ -18,6 +19,7 @@ namespace B1.Mcp.Compat.Host;
 /// The HTTP proxy: everything is passed through to the Service Layer except two things an older Service Layer cannot answer:
 /// the annotated $metadata (scope=entityset) and PersonalFieldsSetupsService_GetPersonalFieldsByTable.
 /// An upstream that natively supports the annotations is detected and then passed through untouched.
+/// A third thing, only on /b1s/v2: the GET of the sets of the extended read package of the build that the Service Layer does not expose, read from the company database (see ServeReadAsync).
 /// </summary>
 public sealed partial class ProxyEndpoint
 {
@@ -25,6 +27,7 @@ public sealed partial class ProxyEndpoint
     private readonly HttpClient _http;
     private readonly string _upstream;
     private readonly Dictionary<string, MetadataSynthesizer> _synths;
+    private readonly IReadOnlyDictionary<string, ReadPackage> _readPackages;
     private readonly ICompanyDatabase _db;
     private readonly SessionRegistry _sessions = new();
     private readonly ConcurrentDictionary<string, bool> _buildWarned = new();
@@ -41,12 +44,13 @@ public sealed partial class ProxyEndpoint
     private static readonly HashSet<string> SkipResponseHeaders = new(StringComparer.OrdinalIgnoreCase)
         { "content-encoding", "transfer-encoding", "content-length", "set-cookie", "connection", "keep-alive" };
 
-    public ProxyEndpoint(CompatOptions o, HttpClient http, IReadOnlyDictionary<string, KnowledgeBase> kbs, MappingOverrides ov, ICompanyDatabase db, BuildPolicy policy, ILogger log)
+    public ProxyEndpoint(CompatOptions o, HttpClient http, IReadOnlyDictionary<string, KnowledgeBase> kbs, IReadOnlyDictionary<string, ReadPackage> readPackages, MappingOverrides ov, ICompanyDatabase db, BuildPolicy policy, ILogger log)
     {
         _o = o;
         _http = http;
         _upstream = o.ServiceLayer.Url.TrimEnd('/');
         _synths = kbs.ToDictionary(k => k.Key, k => new MetadataSynthesizer(k.Value, ov));
+        _readPackages = readPackages;
         _db = db;
         _policy = policy;
         _log = log;
@@ -87,6 +91,7 @@ public sealed partial class ProxyEndpoint
                 await ServePersonalAsync(ctx);
                 return;
             }
+            if (await TryServeReadAsync(ctx)) return;
             await ForwardAsync(ctx, null);
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException)
@@ -159,12 +164,7 @@ public sealed partial class ProxyEndpoint
         WarnOnce(release, decision);
         try
         {
-            var model = await _models.GetAsync(company, async () =>
-            {
-                using var r = await SendAsync(ctx, HttpMethod.Get, "/b1s/v2/$metadata", null, Accept: "application/xml");
-                if (!r.IsSuccessStatusCode) throw new UpstreamStatusException((int)r.StatusCode, await r.Content.ReadAsStringAsync(ctx.RequestAborted));
-                return EdmModel.Parse(await r.Content.ReadAsStringAsync(ctx.RequestAborted));
-            });
+            var model = await ModelAsync(ctx, company);
             var catalog = new LazyCatalog(ct => _catalogs.GetAsync(company, () => LoadUserCatalogAsync(ctx, company)));
             var xml = await synth.BuildAsync(q, model, catalog, s => _log.LogWarning("Entity set {Name} skipped from the list: not in the knowledge base and not a user table/object of {Company}", s, company), ctx.RequestAborted);
             ctx.Response.StatusCode = 200;
@@ -183,6 +183,71 @@ public sealed partial class ProxyEndpoint
         {
             await WriteJsonAsync(ctx, e.Status, e.Body.Length > 0 ? e.Body : ErrorJson("Service Layer metadata request failed"));
         }
+    }
+
+    /// <summary>The plain $metadata of the Service Layer of this company (what it exposes natively), cached.</summary>
+    private Task<EdmModel> ModelAsync(HttpContext ctx, string company) => _models.GetAsync(company, async () =>
+    {
+        using var r = await SendAsync(ctx, HttpMethod.Get, "/b1s/v2/$metadata", null, Accept: "application/xml");
+        if (!r.IsSuccessStatusCode) throw new UpstreamStatusException((int)r.StatusCode, await r.Content.ReadAsStringAsync(ctx.RequestAborted));
+        return EdmModel.Parse(await r.Content.ReadAsStringAsync(ctx.RequestAborted));
+    });
+
+    // ------------------------------------------------------------ extended read
+
+    [GeneratedRegex(@"odata\.maxpagesize=(\d+)", RegexOptions.IgnoreCase)] private static partial Regex MaxPageSize();
+
+    /// <summary>
+    /// Extended read (rea/19 4): a /b1s/v2 request on a set of the read package of this build that the Service Layer does not expose.
+    /// "The Service Layer does not expose it" is read from its own plain $metadata (the same cached model as the metadata synthesis), looking for the set and
+    /// every alias of it; any doubt (no known session, no exact package for the declared build, $metadata unreadable) means passthrough, never an interception.
+    /// GET is read from the database; POST/PATCH/DELETE are refused (ReadGate). Returns false when the request is not ours.
+    /// </summary>
+    private async Task<bool> TryServeReadAsync(HttpContext ctx)
+    {
+        var req = ctx.Request;
+        var path = req.Path.Value ?? "/";
+        var name = ReadRoute.SetNameOf(path);
+        if (name == null || _readPackages.Count == 0) return false;
+        var sid = SessionOf(ctx);
+        var company = CompanyOf(ctx);
+        if (!_sessions.Knows(sid) || company == null) return false;   // reads bypass the Service Layer: only for sessions the connector saw log in
+        var decision = _policy.Resolve(_sessions.VersionFor(sid));
+        // The package is SQL against physical tables: it is used only for the exact build it was generated from.
+        if (!decision.Ok || !decision.Verified || !_readPackages.TryGetValue(decision.Release!, out var package) || package.Build.BuildId != _policy.Build) return false;
+        if (package.Resolve(name) is { Set: null, Unavailable: null }) return false;
+        EdmModel model;
+        try { model = await ModelAsync(ctx, company); }
+        catch (UpstreamStatusException) { return false; }
+        var route = ReadRoute.Decide(package, model.SetsByName.ContainsKey, req.Method, path);
+        if (route.Action == ReadAction.Passthrough) return false;
+        var ev = Wide(ctx);
+        ev["kind"] = "extended_read";
+        ev["b1.entity_set"] = name;
+        ev["b1.company_db"] = company;
+        ev["b1.release"] = decision.Release;
+        if (route.Action == ReadAction.Reject)
+        {
+            await WriteJsonAsync(ctx, route.Error!.Status, route.Error.ToJson());
+            return true;
+        }
+        var size = MaxPageSize().Match(req.Headers["Prefer"].ToString()) is { Success: true } m ? int.Parse(m.Groups[1].Value) : 20;
+        try
+        {
+            var self = $"{req.Scheme}://{req.Host}/b1s/v2";
+            var result = await ReadService.GetAsync(package, _db, company, path[ "/b1s/v2/".Length..] + req.QueryString, self, size, ctx.RequestAborted);
+            ev["b1.table"] = package.Resolve(name).Set?.Table;
+            if (result.Status >= 400) Wide(ctx)["response_body"] = Truncate(result.Body);
+            ctx.Response.StatusCode = result.Status;
+            ctx.Response.ContentType = result.ContentType;
+            await ctx.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(result.Body), ctx.RequestAborted);
+        }
+        catch (Exception e) when (e is CompanyDatabaseException or NotSupportedException)
+        {
+            ev["error"] = e.Message;
+            await WriteJsonAsync(ctx, 502, ErrorJson("b1-mcp-compat: reading the company database for this entity set failed: " + e.Message));
+        }
+        return true;
     }
 
     // ------------------------------------------------------------ user-defined objects

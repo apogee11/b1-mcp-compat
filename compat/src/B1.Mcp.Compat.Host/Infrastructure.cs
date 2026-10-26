@@ -6,6 +6,7 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using B1.Mcp.Compat.Core.Kb;
 using B1.Mcp.Compat.Core.Mappings;
+using B1.Mcp.Compat.Core.Read;
 
 namespace B1.Mcp.Compat.Host;
 
@@ -84,6 +85,20 @@ public static class KbLoader
             all[name["kb-".Length..^".json.gz".Length]] = KnowledgeBase.Load(gz);
         }
         if (all.Count == 0) log.LogWarning("No embedded knowledge base in this build: standard entity sets cannot be annotated.");
+        return all;
+    }
+
+    /// <summary>Package (e.g. "B11000SP_2408", the key of its knowledge base) to its extended read package (read-B11000SP_2408.json.gz). A package that does not load is an error at start, never silently skipped.</summary>
+    public static Dictionary<string, ReadPackage> LoadReadPackages(ILogger log)
+    {
+        var all = new Dictionary<string, ReadPackage>();
+        var asm = typeof(KbLoader).Assembly;
+        foreach (var name in asm.GetManifestResourceNames().Where(n => n.StartsWith("read-", StringComparison.Ordinal) && n.EndsWith(".json.gz", StringComparison.Ordinal)))
+        {
+            using var s = asm.GetManifestResourceStream(name)!;
+            all[name["read-".Length..^".json.gz".Length]] = ReadPackage.LoadGz(s);
+        }
+        if (all.Count == 0) log.LogInformation("No embedded extended read package: sets missing in the Service Layer are not served.");
         return all;
     }
 
