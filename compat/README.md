@@ -132,6 +132,7 @@ Environment variables `B1McpCompat__Section__Key`; there is no settings file. Ev
 | `Release` | empty | Release of the Service Layer, declared: `2208`, `2408` or `2608` (`FP` prefix allowed). Empty: the release of the Login `Version` |
 | `Build` | empty | Build id printed by `tools/collect/check-build.ps1`. Empty: not declared, counted as unsupported |
 | `AllowUnsupportedBuild` | `false` | `false`: a build without knowledge base is a 502 with a fixed message. `true`: serve the knowledge base of the release, with a log warning, not verified |
+| `PageSize` | `20` | Page size of the extended reads (sets the native Service Layer lacks). Order: header `Prefer: odata.maxpagesize=N`, then `B1S-PageSize: N`, then this key. The `PageSize` key of the Service Layer `b1s.conf` is on another machine and the connector cannot read it: if the administrator changed it there, set the same number here (decision closed 2026-10-27; 20 is the native default) |
 | `ServiceLayer:Url` / `SkipTlsVerify` | `https://localhost:50000` / `true` | The Service Layer (they ship self-signed certificates) |
 | `Database:Provider` | `SqlServer` | `SqlServer` or `Hana` (experimental) |
 | `Database:Server` | `localhost` | `host`, `host\instance` or `host,port`. The database is the `CompanyDB` of the Login |
