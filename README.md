@@ -25,6 +25,10 @@ If your partner maintains its own variant of the SAP official MCP server, the co
 
 <!-- coverage:end -->
 
+Each cell is one build. Amber: supported. Green: supported with **extended support**, which also serves the sets that the build's own Service Layer does not expose. Gray: not supported yet.
+
+The **%** shown on the green cells is the share of the 2608 sets that the build serves: the sets its own Service Layer exposes plus, with extended support, the ones served from the read package, divided by the sets of the native FP 2608 Service Layer (a set counts once, and only if 2608 has it). For example, 97.2% means that 97.2% of what FP 2608 exposes is reachable on that build. The same number for every build is in [supported-builds.md](docs/supported-builds.md#extended-support-and--of-2608), and what was and was not checked for each one is in [build-notes.md](docs/build-notes.md).
+
 Support applies to an exact build, not to a whole release.
 
 ## Why
