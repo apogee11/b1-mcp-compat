@@ -365,11 +365,11 @@ public class ReadJsonTests
     }
 
     [Fact]
-    public void DateWithATimeIsRefused()
+    public void DateDropsTheTime()
     {
         var plan = ReadPlanner.Plan(P, "Things?$select=CreateDate");
-        var e = Assert.Throws<ReadException>(() => ReadJson.Body(plan, P, new[] { new ReadRow(new object?[] { new DateTime(2024, 5, 31, 10, 0, 0) }) }, "c"));
-        Assert.Contains("datetime-nonzero-time", e.Message);
+        var body = ReadJson.Body(plan, P, new[] { new ReadRow(new object?[] { new DateTime(2024, 5, 31, 10, 20, 30) }) }, "c");
+        Assert.Contains("\"CreateDate\":\"2024-05-31T00:00:00Z\"", body);
     }
 
     [Fact]

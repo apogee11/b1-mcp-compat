@@ -111,7 +111,7 @@ public static class ReadJson
             case "datetime":
             {
                 var dt = v is DateTimeOffset o ? o.DateTime : Convert.ToDateTime(v, inv);
-                if (dt.TimeOfDay != TimeSpan.Zero) throw ReadException.NotMeasured($"a date with a time other than 00:00:00 in '{name}' (datetime-nonzero-time)");
+                // DBMCdataBase::DataToDAG (case 'D') formats only year/month/day of the ODBC timestamp ("%4.4d%2.2d%2.2d"): the time is dropped
                 w.WriteString(name, dt.ToString("yyyy-MM-dd", inv) + "T00:00:00Z");
                 break;
             }
