@@ -84,6 +84,8 @@ public class ExtendedMetadataTests
         var xml = XDocument.Parse(ext.ToXml());
         Assert.Equal("UTF-8", xml.Declaration?.Encoding);
         Assert.Single(xml.Descendants(EdmModel.Ns + "EntityType"), e => (string)e.Attribute("Name")! == "Order");
+        // convention: injected sets go after the native ones, in ordinal name order
+        Assert.Equal(new[] { "Orders", "Thingies", "Things" }, xml.Descendants(EdmModel.Ns + "EntitySet").Select(e => (string)e.Attribute("Name")!));
     }
 
     [Fact]

@@ -24,7 +24,7 @@ public sealed class ExtendedMetadata
     /// <summary>The plain model plus the injected sets, types and enums (a copy: the plain model is untouched).</summary>
     public EdmModel Model { get; }
 
-    /// <summary>Entity sets added to the model (name to package set), in package order.</summary>
+    /// <summary>Entity sets added to the model (name to package set).</summary>
     public IReadOnlyDictionary<string, ReadSet> Announced => _announced;
 
     private ExtendedMetadata(ReadEdm edm, EdmModel model, Dictionary<string, ReadSet> announced, Dictionary<string, string> nativeAlias, HashSet<string> types, HashSet<string> enums)
@@ -82,7 +82,8 @@ public sealed class ExtendedMetadata
         InsertAfterLast(schema, "ComplexType", edm.Types.Where(t => t.Value.Kind == "complex" && types.Contains(t.Key)).OrderBy(t => t.Key, StringComparer.Ordinal).Select(t => TypeElement(t.Key, t.Value)));
         InsertAfterLast(schema, "EntityType", edm.Types.Where(t => t.Value.Kind == "entity" && types.Contains(t.Key)).OrderBy(t => t.Key, StringComparer.Ordinal).Select(t => TypeElement(t.Key, t.Value)));
         var nativeAlias = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var (name, set) in announced)
+        // convention (decision closed 2026-10-27): every injected set, complex and entity type goes to the end of its section in ordinal name order
+        foreach (var (name, set) in announced.OrderBy(a => a.Key, StringComparer.Ordinal))
         {
             container.Add(new XElement(EdmModel.Ns + "EntitySet", new XAttribute("EntityType", "SAPB1." + set.EntityType), new XAttribute("Name", name)));
             // the set's type is the Service Layer's own: the only facts there are come from the set it already lists under another name
