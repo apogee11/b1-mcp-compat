@@ -6,7 +6,7 @@ Method: the rules come from the engine code of the build (not from guesses). The
 
 ## SP2408 (`B11000SP_2408`)
 
-Build id: `10.0.260.0-ea80448581ff-fe6cbe19acb9-b03b314fdd6c`. Share of the 2608 sets served by the extended read: 28.6% (131 of 458, formula in [supported-builds.md](supported-builds.md#extended-support-and--of-2608)).
+Build id: `10.0.260.0-ea80448581ff-fe6cbe19acb9-b03b314fdd6c`. Total share of the 2608 sets: 96.9% (313 native + 131 extended = 444 of 458; the extended read alone adds 28.6%; formula in [supported-builds.md](supported-builds.md#extended-support-and--of-2608)).
 
 Status: implemented, **not yet measured against a real 2408 Service Layer**.
 
@@ -61,7 +61,7 @@ The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled 
 
 ## SP2505 (`B11000SP_2505`)
 
-Build id: `10.0.290.0-c9ae21daeed4-55fe44b82e4d-3443b8dca453`. Share of the 2608 sets served by the extended read: 28.8% (132 of 458, formula in [supported-builds.md](supported-builds.md#extended-support-and--of-2608)).
+Build id: `10.0.290.0-c9ae21daeed4-55fe44b82e4d-3443b8dca453`. Total share of the 2608 sets: 97.2% (317 native + 132 extended, 4 of them in both = 445 of 458; the extended read alone adds 28.8%; formula in [supported-builds.md](supported-builds.md#extended-support-and--of-2608)).
 
 Status: implemented, **not yet measured against a real 2505 Service Layer**.
 
