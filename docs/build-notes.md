@@ -216,3 +216,48 @@ The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled 
 - `$batch` is not intercepted: an extended set read inside a `$batch` goes to the Service Layer, which answers as if the set did not exist. MCP clients read with plain GET.
 - The `$metadata` injected for the extended sets has no navigation properties, bindings or user fields; its order and the `PageSize` of `b1s.conf` follow the same conventions and the same manual option as in [SP2408](#sp2408-b11000sp_2408), and are not measured against a 2602.
 - Reads go through SQL: the B1 authorizations of the user are not applied.
+
+## FP2208 (`B11000_2208`)
+
+Build id: `10.0.200.0-24aeb23de137-2eb48c85224f-c15ab35d594d`. Total share of the 2608 sets: 93.4% (307 native + 121 extended = 428 of 458; the extended read alone adds 26.4%; formula in [supported-builds.md](supported-builds.md#extended-support-and--of-2608)).
+
+Status: implemented, **not yet measured against a real 2208 Service Layer**.
+
+140 sets in the package: 121 served, 19 not available in this build (they answer 400 "Not available in this version"). None of the 121 is exposed by the 2208 Service Layer, so the extended read serves all of them.
+
+| Result against the 2608 test company | Sets |
+|---|---|
+| Identical JSON, with rows | 81 |
+| Not available in this build (400 by design) | 19 |
+| Expected differences | 2: `PersonalFieldsSetups` (column `IsSystemDefined` not returned) and `TaxDeclarationBoxes` (column `Remarks` not returned; length of `BoxDefinitionRows`) |
+| **Not checked: no rows to compare** | 38 (below) |
+
+### Particularities
+
+Everything specific to this build, in one place. Details are in the sections below and in [SP2408](#sp2408-b11000sp_2408) and [SP2505](#sp2505-b11000sp_2505), whose conventions apply here too.
+
+- **Tables that do not exist in 2208 (19 sets not available, they answer 400 "Not available in this version"):** `ATDocumentTypes` (OSDT), `CAEAInformations` (CAEA), `DatevRuns` (ODTV), `DatevTransactionsDeliveriesAndServices` (ODTS), `DeductibleTaxes` (ORTG), `EBooksFeesCategories` (OEFC), `EBooksOtherTaxCategories` (OEOT), `EBooksRecordTypes` (OREC), `EBooksStampDutyCategories` (OSDC), `ElsterRun` (OELS, ELS1-3), `ISDDocuments` (ISD3), `ImportToExcels` (OIMP, IMP1-3), `OfficialAccountCodes` (OOAC), `PersonalDataRetentionPeriods` (ODRP), `SAFTProductTypes` (OSPT), `SAFTTaxCodes` (OSTX), `SAFTTransactionTypes` (OSTE), `WTaxCategories` (OWCT) and `WTaxRelationTypes` (OWRT). There is nothing to serve: the engine of this build has no such table.
+- **Columns that do not exist (not announced, not returned):** `PersonalFieldsSetups.SysDefined` (the property `IsSystemDefined`) and `TaxDeclarationBoxes.Remarks`. The 2608 returns them; the 2208 tables have no such column, so they are omitted instead of invented.
+- **Expected parity differences against the 2608 test company:** `PersonalFieldsSetups` (`IsSystemDefined` only in the 2608) and `TaxDeclarationBoxes` (`Remarks` only in the 2608, and the length of `BoxDefinitionRows`). Both are the two DIFF of the parity run (81 OK, 38 no data, 19 unavailable as designed, 2 DIFF).
+- **Engine defects replicated, not fixed:** in `TaxDeclarationBoxes` the child BOX1-4 is joined by position and, because its PRIMARY key has another order, it joins `SeqNum`/`Account`/`Value` with `BosCode` of the parent; the length of `BoxDefinitionRows` follows that join (`engineQuirk` `join-posicional-orden-distinto`). The same defect exists in the 2208 engine. In 2208 `OBOX` has no `Remarks` column, which the connector omits.
+- **Physical types specific to 2208** (they only change the informative SQL type of the column, not the JSON): `OCHD` (`ChecksForPaymentDrafts`) has 59 columns, without `EnAcctNum`, `EncryptIV` and `VersionNum`; `BPLName` is `A(100)` here (`A(200)` in 2408 SP) in `OCHD`, `OICD`, `OIOD`, `OIPD`, `OIRI`, `OIRR`, `OISC` and `OISI`, and `VendorName` of `OCHD` is `A(100)`; `OBOX.Formula` (`TaxDeclarationBoxes`) is `A(250)` instead of `ntext`.
+- **Sets that the 2208 Service Layer does not expose but the 2408 SP does, not covered by this package (not served):** `CIGCodes`, `CUPCodes`, `DeductibleTaxs`, `Genders`, `SelfCreditMemos`, `SelfInvoices` and `TaxExemptReasons`. They are outside the scope of the extended read, so a request for them answers as in the native Service Layer.
+- **Hotfixes:** `B110002208HF1_1` and `B110002208HF_2` (FP2208 HF1 and HF2) are other builds with another build id. This package does not serve them; check the build id of your installation against the one above.
+- **Not measured against a real 2208 Service Layer (all of it):** the 38 sets without rows (list below), the order of the child lines of CHD2, FNS1 and MDR1, user fields D with time, N with time and B with another edit type, `image` columns, dates with a time, `PageSize` of `b1s.conf`, `$batch` (not intercepted) and the authorizations of the user. The `$metadata` injected for the extended sets goes at the end of its section; the order of the native entity types, entity sets and complex types of the 2208 Service Layer is not reproduced by the model of this connector (the container of the 2208 Service Layer grows while items are inserted), which does not matter for the injected items. The writer of the `$metadata` v4 of the 2208 Service Layer was checked in its code, not against a live 2208. No end-to-end run against a real 2208 yet.
+
+### Sets whose retrieval could not be checked for lack of data
+
+For these the empty answer is identical to the native one, but the values (types, dates, enums, nulls, child lines, order) were never compared. If a customer uses one, test it.
+
+`AcknowledgementNumbers`, `BrazilServiceCodes`, `BrazilTaxAdjustments`, `ChecksForPaymentDrafts` (child CHD2), `CountWidgets`, `Counties`, `DataImportTemplates`, `DetailedCheckingRules`, `DistributionLists`, `EJABCompanyDetails`, `FixedAssetFiscalYearChanges`, `FolioNumberingDocuments`, `FolioNumberingSeries` (FNS1), `GstRegnTypes`, `ISDCreditMemos`, `ISDInvoices`, `ISDRecipientCreditMemos`, `ISDRecipientInvoices`, `IncomingPaymentOrders`, `InventoryCountingDrafts`, `InventoryOpeningBalanceDrafts`, `InventoryPostingDrafts`, `ItemMaterialTypes`, `MRPScenarios`, `ManualDistributionRules` (MDR1), `MenuAbbreviations`, `OutgoingPaymentOrders`, `POSCashRegisters`, `PointsOfIssues`, `PostdatedDeposits`, `ProcessChecklistInstances`, `ProcessChecklistTemplates`, `ProductSourceCodes`, `RecurringTransactionTemplates`, `RetailChains`, `UnencumberedICMSExemptionReasons`, `WorkflowInstances`, `WorkflowTemplateManagers`.
+
+The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled from the engine, but it was not seen working: those are the first to check.
+
+### Other things not measured
+
+- User fields (`U_*`): the JSON rule is decompiled for every type, but the test company only has types A, B (scale), D, M and N. Types D with time, N with time (`TimeOfDay`) and B with another edit type were not seen working; a column whose physical type does not match the rule answers 501 instead of a guess.
+- The JSON of `image` columns and filters not measured answer 501 by design, and so does a `$filter` with a date literal that has a time other than 00:00:00.
+- Dates: the native Service Layer drops the time of a `datetime` column when it loads the value, so the connector serves the date as `T00:00:00Z`. Not seen with live data.
+- `$batch` is not intercepted: an extended set read inside a `$batch` goes to the Service Layer, which answers as if the set did not exist. MCP clients read with plain GET.
+- The `$metadata` injected for the extended sets has no navigation properties, bindings or user fields; its `PageSize` of `b1s.conf` follows the same conventions and the same manual option as in [SP2408](#sp2408-b11000sp_2408), and is not measured against a 2208.
+- Reads go through SQL: the B1 authorizations of the user are not applied.
