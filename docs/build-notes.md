@@ -162,3 +162,57 @@ The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled 
 - `$batch` is not intercepted: an extended set read inside a `$batch` goes to the Service Layer, which answers as if the set did not exist. MCP clients read with plain GET.
 - The `$metadata` injected for the extended sets has no navigation properties, bindings or user fields; its order and the `PageSize` of `b1s.conf` follow the same conventions and the same manual option as in [SP2408](#sp2408-b11000sp_2408), and are not measured against a 2402.
 - Reads go through SQL: the B1 authorizations of the user are not applied.
+
+## FP2602 (`B11000_2602`)
+
+Build id: `10.0.320.0-1dbf7e7cfc75-a13b197811f4-92a0ab6f1a33`. Total share of the 2608 sets: 98.9% (331 native + 138 extended, 16 of them in both = 453 of 458; the extended read alone adds 30.1%; formula in [supported-builds.md](supported-builds.md#extended-support-and--of-2608)).
+
+Status: implemented, **not yet measured against a real 2602 Service Layer**.
+
+140 sets in the package: 138 served, 2 not available in this build (they answer 400 "Not available in this version"). 16 of the 138 are sets that the 2602 Service Layer already exposes: it answers them, not the connector.
+
+| Result against the 2608 test company | Sets |
+|---|---|
+| Identical JSON, with rows | 92 |
+| Not available in this build (400 by design) | 2 |
+| Expected differences | 1: `TaxDeclarationBoxes` (length of `BoxDefinitionRows` only; positional link of BOX1-4 replicated from the engine) |
+| **Not checked: no rows to compare** | 45 (below) |
+
+### Particularities
+
+Everything specific to this build, in one place. Details are in the sections below and in [SP2408](#sp2408-b11000sp_2408) and [SP2505](#sp2505-b11000sp_2505), whose conventions apply here too.
+
+- **Tables that do not exist in 2602 (2 sets not available, they answer 400 "Not available in this version"):** `ElsterRun` (OELS, ELS1-3; `TaxReportFilterElster` goes with it) and `ImportToExcels` (OIMP, IMP1-3). There is nothing to serve: the engine of this build has no such table. `ScheduleJobs` is outside the scope of the extended read.
+- **Columns that do not exist (not announced, not returned):** none. All the columns of the 138 served sets exist in 2602.
+- **Difference with 2505 SP:** 2602 serves six sets more, because their tables exist: `CAEAInformations`, `DatevRuns`, `DatevTransactionsDeliveriesAndServices`, `ISDDocuments` (children ISD1-3), `WTaxCategories` and `WTaxRelationTypes`; it serves no set that 2505 SP serves and 2602 does not. New columns in 2602: `SpecificWTHAmountsService` (`WHTRelCode`, `AmtDedUsed`), `ManualDistributionRules` (`DTVId`), `PointsOfIssues` (`CAEARqtFrm`, `Regime`); `SpecificWTHAmountsService.Category` is `nvarchar(3)` (`char(1)` in 2505 SP). 138 served here against 132 in 2505 SP. The 2602 Service Layer also declares three complex types in its `$metadata` that 2505 SP does not (`CompanySummary`, `Event`, `EventCatagory`).
+- **Sets the 2602 Service Layer already exposes (16): the connector leaves them to the Service Layer.** `CentralBankIndicator`, `Counties`, `DatevRuns`, `DeductibleTaxes`, `DistributionLists`, `ISDCreditMemos`, `ISDDocuments`, `ISDInvoices`, `ISDRecipientCreditMemos`, `ISDRecipientInvoices`, `InventoryCountingDrafts`, `InventoryOpeningBalanceDrafts`, `InventoryPostingDrafts`, `PaymentWizards`, `RecurringTransactionTemplates`, `SpecificWTHAmountsService`. A request is intercepted only when the `$metadata` of the Service Layer of that session does not list the exact name asked, so these are never served from the package. That the 2602 Service Layer exposes them comes from its engine code and from the knowledge base of the build, not from a live 2602; if one is missing from your `$metadata`, the connector serves it from the package. The extended read serves the other 122.
+- **Expected parity differences against the 2608 test company:** `TaxDeclarationBoxes`, only the length of `BoxDefinitionRows` (the only DIFF of the parity run; 92 OK, 45 no data, 2 unavailable as designed). `Remarks` does not differ. The parity run compares the connector with the package against the 2608, so it does not tell the 16 native sets apart (4 of them with rows and no differences: `CentralBankIndicator`, `DeductibleTaxes`, `PaymentWizards`, `SpecificWTHAmountsService`).
+- **Engine defects replicated, not fixed:** in `TaxDeclarationBoxes` the child BOX1-4 is joined by position and, because its PRIMARY key has another order in 2602, it joins `SeqNum`/`Account`/`Value` with `BosCode` of the parent. The length of `BoxDefinitionRows` follows that join (`engineQuirk` `join-posicional-orden-distinto`).
+- **Not measured against a real 2602 Service Layer (all of it):** the 45 sets without rows (list below), the new columns and the children ISD1-3, the order of the child lines of CHD2/FNS1/MDR1, user fields D with time, N with time and B with another edit type, `image` columns, dates with a time, `$metadata` order of the injected items, `PageSize` of `b1s.conf`, `$batch` (not intercepted). The Service Layer functions that add actions and complex types (`AddFunctions`) were not decompiled; they are identical to the 2505 ones, which were not decompiled either. For `WTaxCategories` and `WTaxRelationTypes` it is not shown that the engine reads their main row with the generic rule (they have no children, so the risk is only the main row). No end-to-end run against a real 2602 yet.
+
+### Sets whose retrieval could not be checked for lack of data
+
+For these the empty answer is identical to the native one, but the values (types, dates, enums, nulls, child lines, order) were never compared. If a customer uses one, test it.
+
+**The test Service Layer does not let you create rows** (error `-1008`; the DI API has only `Get`/`GetList` for most of them, so this is the engine, not the REST API):
+`ChecksForPaymentDrafts` (child CHD2), `FolioNumberingSeries` (FNS1), `ManualDistributionRules` (MDR1), `DataImportTemplates`, `FixedAssetFiscalYearChanges`, `FolioNumberingDocuments`, `GstRegnTypes`, `IncomingPaymentOrders`, `OutgoingPaymentOrders`, `PostdatedDeposits`, `InventoryCountingDrafts`, `InventoryOpeningBalanceDrafts`, `InventoryPostingDrafts`, `ItemMaterialTypes`, `MRPScenarios`, `MenuAbbreviations`, `ProcessChecklistTemplates`, `ProcessChecklistInstances`, `RecurringTransactionTemplates`, `RetailChains`, `UnencumberedICMSExemptionReasons`, `WorkflowInstances`, `WorkflowTemplateManagers`.
+
+**Need a localization or a fiscal setup the test company does not have:**
+`BrazilServiceCodes`, `BrazilTaxAdjustments`, `Counties`, `ISDInvoices`, `ISDCreditMemos`, `ISDRecipientInvoices`, `ISDRecipientCreditMemos`, `AcknowledgementNumbers` (needs a fiscal year), `CountWidgets` (needs a saved query), `EJABCompanyDetails`.
+
+**Creation failed with an engine error that was not investigated:**
+`DetailedCheckingRules`, `DistributionLists`, `POSCashRegisters`, `PointsOfIssues`, `ProductSourceCodes`.
+
+**Not seeded (the table is empty in the test company; no data to compare, and whether rows can be created there was not investigated):** `PersonalDataRetentionPeriods`, and the six sets that 2602 adds over 2505: `CAEAInformations`, `DatevRuns`, `DatevTransactionsDeliveriesAndServices`, `ISDDocuments`, `WTaxCategories`, `WTaxRelationTypes`.
+
+The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled from the engine, but it was not seen working: those are the first to check.
+
+### Other things not measured
+
+- User fields (`U_*`): the JSON rule is decompiled for every type, but the test company only has types A, B (scale), D, M and N. Types D with time, N with time (`TimeOfDay`) and B with another edit type were not seen working; a column whose physical type does not match the rule answers 501 instead of a guess.
+- The JSON of `image` columns and filters not measured answer 501 by design, and so does a `$filter` with a date literal that has a time other than 00:00:00.
+- Dates: the native Service Layer drops the time of a `datetime` column when it loads the value, so the connector serves the date as `T00:00:00Z`. Not seen with live data.
+- `ISDInvoices`, `ISDCreditMemos`, `ISDRecipientInvoices` and `ISDRecipientCreditMemos`: the column `HandWritten` is served from the column `HandWrtten`, as the native query does; its value was not compared (the tables are empty in the test company). In 2602 these four are answered by the Service Layer itself.
+- `$batch` is not intercepted: an extended set read inside a `$batch` goes to the Service Layer, which answers as if the set did not exist. MCP clients read with plain GET.
+- The `$metadata` injected for the extended sets has no navigation properties, bindings or user fields; its order and the `PageSize` of `b1s.conf` follow the same conventions and the same manual option as in [SP2408](#sp2408-b11000sp_2408), and are not measured against a 2602.
+- Reads go through SQL: the B1 authorizations of the user are not applied.
