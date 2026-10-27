@@ -151,6 +151,20 @@ public class ExtendedMetadataTests
     }
 
     [Fact]
+    public void IsdSetsServeHandWrittenFromTheCaseInsensitiveColumn()
+    {
+        var path = RealPackagePath();
+        if (path == null) return;
+        var pkg = ReadPackage.LoadGz(File.OpenRead(path));
+        foreach (var n in new[] { "ISDInvoices", "ISDCreditMemos", "ISDRecipientInvoices", "ISDRecipientCreditMemos" })
+        {
+            var s = pkg.Sets[n];
+            Assert.Contains("HandWritten", s.PropertyOrder!);
+            Assert.Equal("HandWritten", s.Columns.Single(c => c.Name == "Handwrtten").Json!.Property);
+        }
+    }
+
+    [Fact]
     public async Task The131ServedSetsOf2408SpAreAnnouncedAndEachAnswersItsScopedMetadata()
     {
         var path = RealPackagePath();
