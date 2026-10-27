@@ -25,9 +25,17 @@ If your partner maintains its own variant of the SAP official MCP server, the co
 
 <!-- coverage:end -->
 
-Each cell is one build. Amber: supported. Green: supported with **extended support**, which also serves the sets that the build's own Service Layer does not expose. Gray: not supported yet.
+Each cell is one Business One build. The MCP server is designed for FP 2608, whose Service Layer exposes a fixed list of entities and actions. Older builds expose fewer of them, so the connector fills the gap.
 
-The **%** shown on the green cells is the share of the 2608 sets that the build serves: the sets its own Service Layer exposes plus, with extended support, the ones served from the read package, divided by the sets of the native FP 2608 Service Layer (a set counts once, and only if 2608 has it). For example, 97.2% means that 97.2% of what FP 2608 exposes is reachable on that build. The same number for every build is in [supported-builds.md](docs/supported-builds.md#extended-support-and--of-2608), and what was and was not checked for each one is in [build-notes.md](docs/build-notes.md).
+- **Amber: supported.** The connector works with what the build's own Service Layer exposes.
+- **Green: extended support.** The connector also serves what the build's Service Layer lacks, using a read package that is bundled with the connector.
+- **Gray: not supported yet.**
+
+The **%** on a green cell is how much of FP 2608's list the build can reach. For example, 97.2% means 97.2% of what FP 2608 exposes works on that build.
+
+**A green cell below 100% is not unfinished work.** The remaining part does not exist in that build, so no connector can serve it. Green is the most that build can offer.
+
+Per-build figures are in [supported-builds.md](docs/supported-builds.md#extended-support-and--of-2608), and what was checked on each build is in [build-notes.md](docs/build-notes.md).
 
 Support applies to an exact build, not to a whole release.
 
