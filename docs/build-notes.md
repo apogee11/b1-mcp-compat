@@ -4,7 +4,9 @@ What was and was not checked for each build that serves the extended read (sets 
 
 Method: the rules come from the engine code of the build (not from guesses). The JSON of every set is compared with the native Service Layer FP2608 of a test company (`tools/parity/read_parity.py`). A set can only be compared when it has rows, and some sets cannot be filled in that test company.
 
-## SP2408 (`B11000SP_2408`, build `10.0.260.0-ea80448581ff-fe6cbe19acb9-b03b314fdd6c`)
+## SP2408 (`B11000SP_2408`)
+
+Build id: `10.0.260.0-ea80448581ff-fe6cbe19acb9-b03b314fdd6c`. Share of the 2608 sets served by the extended read: 28.6% (131 of 458, formula in [supported-builds.md](supported-builds.md#extended-support-and--of-2608)).
 
 Status: implemented, **not yet measured against a real 2408 Service Layer**.
 
@@ -16,6 +18,16 @@ Status: implemented, **not yet measured against a real 2408 Service Layer**.
 | Not available in this build (400 by design) | 9 |
 | Expected differences (columns that do not exist in 2408 SP) | 2: `PersonalFieldsSetups` (no `SysDefined`), `TaxDeclarationBoxes` (no `Remarks`; positional link of BOX1-4 replicated from the engine) |
 | **Not checked: no rows to compare** | 38 (below) |
+
+### Particularities
+
+Everything specific to this build, in one place. Details are in the sections below.
+
+- **Tables that do not exist in 2408 SP (9 sets not available, they answer 400 "Not available in this version"):** `CAEAInformations` (CAEA), `DatevRuns` (ODTV), `DatevTransactionsDeliveriesAndServices` (ODTS), `ElsterRun` (OELS, ELS1-3; `TaxReportFilterElster` goes with it), `ISDDocuments` (ISD3), `ImportToExcels` (OIMP, IMP1-3), `PersonalDataRetentionPeriods` (ODRP), `WTaxCategories` (OWCT), `WTaxRelationTypes` (OWRT). There is nothing to serve: the engine of this build has no such table.
+- **Columns that do not exist (not announced, not returned):** `PersonalFieldsSetups.SysDefined` (`IsSystemDefined` in 2608) and `TaxDeclarationBoxes.Remarks`.
+- **Expected parity differences against the 2608 test company:** those 2 sets (the only DIFF of the parity run; 28 OK, 101 no data, 9 unavailable as designed).
+- **Engine defects replicated, not fixed:** in `TaxDeclarationBoxes` the child BOX1-4 is joined by position and, because its PRIMARY key has another order in 2408 SP, it joins `SeqNum`/`Account`/`Value` with `BosCode` of the parent. Also the length of `BoxDefinitionRows` follows that join (`engineQuirk` `join-posicional-orden-distinto`).
+- **Not measured against a real 2408 Service Layer (all of it):** the 38 sets without rows (list below), the order of the child lines of CHD2/FNS1/MDR1, user fields D with time, N with time and B with another edit type, `image` columns, dates with a time, `$metadata` order of the injected items, `PageSize` of `b1s.conf`, `$batch` (not intercepted). No end-to-end run against a real 2408 yet.
 
 ### Sets whose retrieval could not be checked for lack of data
 
