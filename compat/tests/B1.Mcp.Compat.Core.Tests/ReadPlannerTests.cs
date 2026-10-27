@@ -373,6 +373,17 @@ public class ReadJsonTests
     }
 
     [Fact]
+    public void DateOnlyPackageWritesTheDateWithoutTheTimeSuffix()
+    {
+        var p = ReadPackage.Load(new MemoryStream(Encoding.UTF8.GetBytes(ReadTestData.PackageJson.Replace("\"sets\"", "\"dateJson\": \"date-only\", \"sets\""))));
+        var plan = ReadPlanner.Plan(p, "Things?$select=CreateDate");
+        var body = ReadJson.Body(plan, p, new[] { new ReadRow(new object?[] { new DateTime(2024, 5, 31, 10, 20, 30) }) }, "c");
+        Assert.Contains("\"CreateDate\":\"2024-05-31\"", body);
+        Assert.DoesNotContain("T00:00:00Z", body);
+        Assert.Throws<InvalidDataException>(() => ReadPackage.Load(new MemoryStream(Encoding.UTF8.GetBytes(ReadTestData.PackageJson.Replace("\"sets\"", "\"dateJson\": \"x\", \"sets\"")))));
+    }
+
+    [Fact]
     public void UserFieldsGoLastAndChildrenAfterTheRoot()
     {
         var p = ReadTestData.Pkg();

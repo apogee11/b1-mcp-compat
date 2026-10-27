@@ -112,7 +112,7 @@ public static class ReadJson
             {
                 var dt = v is DateTimeOffset o ? o.DateTime : Convert.ToDateTime(v, inv);
                 // DBMCdataBase::DataToDAG (case 'D') formats only year/month/day of the ODBC timestamp ("%4.4d%2.2d%2.2d"): the time is dropped
-                w.WriteString(name, dt.ToString("yyyy-MM-dd", inv) + "T00:00:00Z");
+                w.WriteString(name, dt.ToString("yyyy-MM-dd", inv) + (pkg.DateJson == "date-only" ? "" : "T00:00:00Z"));
                 break;
             }
             default: throw ReadException.NotMeasured($"JSON of a {c.SqlType} column ('{name}')");

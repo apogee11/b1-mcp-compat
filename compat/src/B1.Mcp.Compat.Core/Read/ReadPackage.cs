@@ -152,6 +152,8 @@ public sealed class ReadPackage
 
     /// <summary>EDM of the served sets (schemaVersion 2). Without it the package serves data but announces nothing in $metadata.</summary>
     [JsonPropertyName("edm")] public ReadEdm? Edm { get; set; }
+    /// <summary>How the build's serializer writes a date: absent = "yyyy-mm-ddT00:00:00Z" (2202 onwards); "date-only" = "yyyy-mm-dd" (builds whose ServiceLayer.dll has no such suffix, e.g. FP2108).</summary>
+    [JsonPropertyName("dateJson")] public string? DateJson { get; set; }
     [JsonPropertyName("sets")] public Dictionary<string, ReadSet> Sets { get; set; } = new(StringComparer.Ordinal);
     [JsonPropertyName("unavailable")] public Dictionary<string, ReadUnavailable> Unavailable { get; set; } = new(StringComparer.Ordinal);
 
@@ -179,6 +181,7 @@ public sealed class ReadPackage
 
     private void Validate()
     {
+        if (DateJson != null && DateJson != "date-only") throw new InvalidDataException($"Read package: unknown dateJson '{DateJson}'.");
         foreach (var (name, s) in Sets)
         {
             Check(name, s.Table);
