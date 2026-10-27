@@ -72,10 +72,10 @@ def entity_set_order():
     return [x for x in u.lst if x in ms] + ['B1Sessions', 'ItemImages', 'EmployeeImages', 'Picture' + 's'], m
 
 # ---- ComplexType: FUN_18001d890 -> AddDeclareType (FUN_180026aa0). Bucle 1 = servicios CON ServiceParams (vt[0x90], codigo-cadena, luego empresa);
-# bucle 2 = vt[0x98] (servicios sin ServiceParams). Por data: si NO es principal (tipo no-ET) inserta su tipo; luego inserta TODOS los tipos de sus hijos
+# bucle 2 = vt[0x98] (servicios sin ServiceParams; [V] sesion 5: IServicesMD::GetServiceMDList -> FUN_18124d5f0 = recorrido en orden de clave de un std::map, comunes y luego claves de empresa no numericas; comparador de SBOString no decompilado). Por data: si NO es principal (tipo no-ET) inserta su tipo; luego inserta TODOS los tipos de sus hijos
 # directos (pasada A) y despues recursa en cada hijo (pasada B). JournalVoucher se salta. ScheduleJob es principal (ET oculto), ScheduleJobParams y
 # BackendSchedulingSubTasks se insertan pero no se emiten. Tipos ET nunca son CT. Fuera del mapa, al final: CompanySummary, Event, EventCatagory.
-# EMPRESA: orden empirico (todas las posiciones 1..4 de InvokeParams dan 100 %); InvokeParams viene de CompanyServicesMeteData.cpp (UDO Invoke), no del catalogo comun.
+# EMPRESA: orden empirico (todas las posiciones 1..4 de InvokeParams dan 100 %); InvokeParams viene de CompanyServicesMeteData.cpp (UDO Invoke), no del catalogo comun. [V] es un CDataMD creado en FUN_1804fddf0/FUN_1804fea10, no una clave de servicio; [H] posicion y orden relativo del bloque siguen siendo empiricos (ver rea/01-findings.md sesion 5).
 COMPANY_CT = ['SBOUDTParams', 'SBOUDTL', 'InvokeParams', 'U_SBOCTXTParams', 'U_SBOBULKParams']
 def complex_type_order():
     c = json.load(open(OUT / 'csmd_B11000_2608.json', encoding='utf8'))
