@@ -79,6 +79,7 @@ Sets that exist only in newer Service Layers (and whose tables exist in the inst
 - **A set is intercepted only if the Service Layer does not expose it**: its plain `$metadata` (the cached one of the metadata synthesis) lists neither the set nor any alias of it. If `$metadata` cannot be read, the request is passed through.
 - **Database access** is the one of the personal-data feature (`B1McpCompat__Database__*`); only the SELECTs planned from the package are run, always parameterised. It does not apply the B1 authorizations of the user.
 - A set whose table is missing in the build answers 400 naming the table. A shape without a measured rule answers 501 instead of being guessed.
+- **Limitation: `$batch` is not intercepted.** A `$batch` is passed to the Service Layer, so an extended set read inside it fails there. Read extended sets with plain GET. What was and was not checked per build: [build notes](../docs/build-notes.md).
 
 ## Personal data
 

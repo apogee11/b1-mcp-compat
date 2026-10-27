@@ -35,8 +35,12 @@ The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled 
 ### Other things not measured
 
 - User fields (`U_*`): the JSON rule is decompiled for every type, but the test company only has types A, B (scale), D, M and N. Types D with time, N with time (`TimeOfDay`) and B with another edit type were not seen working; a column whose physical type does not match the rule answers 501 instead of a guess.
-- The JSON of `image` columns, dates with a time other than 00:00, and filters not measured answer 501 by design.
-- `$batch` is not intercepted: an extended set read inside a `$batch` goes to the Service Layer.
+- The JSON of `image` columns and filters not measured answer 501 by design, and so does a `$filter` with a date literal that has a time other than 00:00:00.
+- Dates: the native Service Layer drops the time of a `datetime` column when it loads the value (decompiled in 2408 SP and 2608), so the connector serves the date as `T00:00:00Z`. Not seen with live data (the test company has no row with a time).
+- User fields: the JSON rule per type letter is decompiled in 2408 SP and 2608. Not seen with live data: D with time, N with time, B with percent or price edit type, `@NAME` user tables, and `eq null` on a user field.
+- `TaxReportFilterElster` (`ElsterRun`) is not available in 2408 SP: its tables do not exist in that build.
+- `ISDInvoices`, `ISDCreditMemos`, `ISDRecipientInvoices` and `ISDRecipientCreditMemos`: the column `HandWritten` is served from the column `HandWrtten`, as the native query does; its value was not compared (the tables are empty in the test company).
+- `$batch` is not intercepted (decision closed 2026-10-27): an extended set read inside a `$batch` goes to the Service Layer, which answers as if the set did not exist. MCP clients read with plain GET; intercepting needs parsing multipart, serving the local GETs, rebuilding the answers in order and stopping at the first failure. It will be revisited only if a client needs it.
 - The `$metadata` injected for the extended sets has no navigation properties, bindings or user fields.
 - Measured against the native 2608 (not yet against a 2408): Content-Type and `OData-Version` of `$metadata` and `/$count`, `@odata.context` with `$select`, `eq null` / `ne null`, and the page size order (`Prefer: odata.maxpagesize` over `B1S-PageSize` over the configured size). Injected enums sit in name order like the native ones.
 - Order of the injected items in the flat `$metadata` (decision closed 2026-10-27, a convention and not a heuristic): every type a native 2408 lacks goes at the end of its section (ComplexType, EntityType, EntitySet), in ordinal UTF-16 name order; enums go to their ordinal place among the native ones. It is not measured against a 2408.
