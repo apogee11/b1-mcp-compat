@@ -62,7 +62,7 @@ def measured_of(tag):
 # ---- EntitySet: AddEntitSets (0x18001e060) itera vt[0x90] = ServiceParams del std::map +0x28 (orden por codigo-cadena), una clave por
 # ServiceParams = nombre expuesto (setname_params.json 'exp', = FUN_180018dd0/GetExposedNameOfEntitySet); se insertan TODOS (tambien ScheduleJobs, SBOMailers, no emitidos),
 # luego los de empresa. Fuera del mapa, al final: B1Sessions, ItemImages, EmployeeImages, Pictures.
-COMPANY_ES = ['U_SBOCTXT', 'SBOUDT', 'U_SBOBULK']   # cualquier permutacion da lo mismo
+COMPANY_ES = ['SBOUDT', 'U_SBOBULK', 'U_SBOCTXT']   # orden de clave ordinal del mapa de empresa (+0x28); cualquier permutacion da lo mismo
 def entity_set_order():
     sp = json.load(open(OUT / 'setname_params.json', encoding='utf8'))
     m = measured_of('EntitySet'); ms = set(m)
@@ -75,8 +75,8 @@ def entity_set_order():
 # bucle 2 = vt[0x98] (servicios sin ServiceParams; [V] sesion 5: IServicesMD::GetServiceMDList -> FUN_18124d5f0 = recorrido en orden de clave de un std::map, comunes y luego claves de empresa no numericas; comparador de SBOString no decompilado). Por data: si NO es principal (tipo no-ET) inserta su tipo; luego inserta TODOS los tipos de sus hijos
 # directos (pasada A) y despues recursa en cada hijo (pasada B). JournalVoucher se salta. ScheduleJob es principal (ET oculto), ScheduleJobParams y
 # BackendSchedulingSubTasks se insertan pero no se emiten. Tipos ET nunca son CT. Fuera del mapa, al final: CompanySummary, Event, EventCatagory.
-# EMPRESA: orden empirico (todas las posiciones 1..4 de InvokeParams dan 100 %); InvokeParams viene de CompanyServicesMeteData.cpp (UDO Invoke), no del catalogo comun. [V] es un CDataMD creado en FUN_1804fddf0/FUN_1804fea10, no una clave de servicio; [H] posicion y orden relativo del bloque siguen siendo empiricos (ver rea/01-findings.md sesion 5).
-COMPANY_CT = ['SBOUDTParams', 'SBOUDTL', 'InvokeParams', 'U_SBOCTXTParams', 'U_SBOBULKParams']
+# EMPRESA [V] sesion 6: GetServiceParamsList (FUN_18124daa0) = mapa comun (+0x28) y luego el mapa de empresa (+0x28 de CServicesMD, claves no numericas, orden ordinal UTF-16 sensible a mayusculas: FUN_1800b66b0/FUN_1800b7140) -> las claves de empresa van AL FINAL del bucle 1 (entre los dos bucles). Cada servicio de empresa (UDO: FUN_1804fbc00; UDT 'U_%s': FUN_1804fb3f0) termina en FUN_1804fddf0, que AÑADE AL FINAL de su vector de datos un CDataMD 'InvokeParams' (uno por servicio; AddDeclareType deduplica por nombre) y registra su ServiceParams (FUN_1804fb010). Orden de claves: SBOUDT < U_SBOBULK < U_SBOCTXT, asi InvokeParams sale tras SBOUDTParams/SBOUDTL (unica restriccion que exige el 100 %: SBOUDTParams antes que InvokeParams). [H] solo el contenido exacto del vector de datos de SBOUDT (SBOUDTL entre Params e InvokeParams).
+COMPANY_CT = ['SBOUDTParams', 'SBOUDTL', 'InvokeParams', 'U_SBOBULKParams', 'U_SBOCTXTParams']
 def complex_type_order():
     c = json.load(open(OUT / 'csmd_B11000_2608.json', encoding='utf8'))
     sp = json.load(open(OUT / 'setname_params.json', encoding='utf8'))
