@@ -399,3 +399,49 @@ The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled 
 - `$batch` is not intercepted: an extended set read inside a `$batch` goes to the Service Layer, which answers as if the set did not exist. MCP clients read with plain GET.
 - The `$metadata` injected for the extended sets has no navigation properties, bindings or user fields; its `PageSize` of `b1s.conf` follows the same conventions and the same manual option as in [SP2408](#sp2408-b11000sp_2408), and is not measured against a 2108.
 - Reads go through SQL: the B1 authorizations of the user are not applied.
+
+## FP2105 (`B11000_2105`)
+
+Build id: `10.0.160.0-03077f50d654-fdec5332093a-e8a97efa0067`. Total share of the 2608 sets: 91.0% (297 native + 120 extended = 417 of 458; the extended read alone adds 26.2%; formula in [supported-builds.md](supported-builds.md#extended-support-and--of-2608)).
+
+Status: implemented, **not yet measured against a real 2105 Service Layer**.
+
+140 sets in the package: 120 served, 20 not available in this build (they answer 400 "Not available in this version"). None of the 120 is exposed by the 2105 Service Layer, so the extended read serves all of them. The package has the same sets, unavailable list, omitted columns, child joins and `dateJson` as [FP2108](#fp2108-b11000_2108); the only differences are two tables with fewer physical columns (below).
+
+| Result against the 2608 test company | Sets |
+|---|---|
+| Identical JSON, with rows | 71 |
+| Not available in this build (400 by design) | 20 |
+| Expected differences | 11 (below): 9 because the 2105 writes dates without a time, 3 because of columns that 2105 does not have (`TaxDeclarationBoxes` has both) |
+| **Not checked: no rows to compare** | 38 (below) |
+
+### Particularities
+
+Everything specific to this build, in one place. The conventions of [FP2108](#fp2108-b11000_2108), [SP2408](#sp2408-b11000sp_2408) and [FP2202](#fp2202-b11000_2202) apply here too.
+
+- **Dates are written as `yyyy-mm-dd`, without `T00:00:00Z`.** The literal `T00:00:00Z` is not in the `ServiceLayer.dll` of this build (neither as UTF-8 nor as UTF-16), and the function that writes the properties is instruction-identical to the one of 2108, which lacks the branch that appends the time (compared function by function; the literal appears from 2202 on). The package therefore carries `dateJson: "date-only"` and the connector serves `"RateDate":"2012-02-29"` where the 2608 answers `"2012-02-29T00:00:00Z"`, in every date including user fields of type D. Not seen with live data.
+- **Tables that do not exist in 2105 (20 sets not available, they answer 400 "Not available in this version"):** the same 20 as 2108: `ATDocumentTypes`, `BlockExecutables` (OATB), `CAEAInformations`, `DatevRuns`, `DatevTransactionsDeliveriesAndServices`, `DeductibleTaxes`, `EBooksFeesCategories`, `EBooksOtherTaxCategories`, `EBooksRecordTypes`, `EBooksStampDutyCategories`, `ElsterRun`, `ISDDocuments`, `ImportToExcels`, `OfficialAccountCodes`, `PersonalDataRetentionPeriods`, `SAFTProductTypes`, `SAFTTaxCodes`, `SAFTTransactionTypes`, `WTaxCategories` and `WTaxRelationTypes`. There is nothing to serve: the engine of this build has no such table.
+- **Columns that do not exist (not announced, not returned):** `ChecksForPaymentDrafts.ECheck`, `EBooksInvoiceTypes.SubmitedBy` (the property `SubmittedBy`) and `EBooksInvoiceTypes.SelfPrice` (the property `SelfPricing`), `PersonalFieldsSetups.SysDefined` (the property `IsSystemDefined`) and `TaxDeclarationBoxes.Remarks`. The 2608 returns them; the 2105 tables have no such column, so they are omitted instead of invented. Same five as 2108.
+- **Physical columns that 2105 lacks and 2108 has** (they are not exposed as properties, so the JSON does not change): `LogInstanc`, `UpdateDate` and `UserSign2` in the tables of `ExchangeRates` (ORTT) and `ExchangeRatesForReports` (ORTS). The other 138 sets have the same columns, types and nullability as 2108; the 26 child collections have the same joins and order.
+- **Expected parity differences against the 2608 test company (11 DIFF in the parity run: 71 OK, 38 no data, 20 unavailable as designed, 11 DIFF):** dates without `T00:00:00Z` in `ApprovalAuthorizorReplacements`, `BoxSets`, `ExchangeRates`, `ExchangeRatesForReports`, `InterestRates`, `OpeningBalance1099s`, `PaymentWizards`, `TaxDeclarationBoxes` and `Thresholds`; `EBooksInvoiceTypes` (`SubmittedBy` and `SelfPricing` only in the 2608); `PersonalFieldsSetups` (`IsSystemDefined` only in the 2608); `TaxDeclarationBoxes` (also `Remarks` only in the 2608 and the length of `BoxDefinitionRows`). It is the same list as 2108.
+- **Engine defects replicated, not fixed:** in `TaxDeclarationBoxes` the child BOX1-4 is joined by position and, because its PRIMARY key has another order, it joins `SeqNum`/`Account`/`Value` with `BosCode` of the parent; the length of `BoxDefinitionRows` follows that join (`engineQuirk` `join-posicional-orden-distinto`). `GOGetArray`, `GOGetArray4SL` and `DefaultGetByKey` are instruction-identical to 2108, so the defect exists in the 2105 engine.
+- **Sets that the 2105 Service Layer does not expose, not covered by this package (not served):** `AssetRevaluations`, `BEMReplicationPeriods`, `CIGCodes`, `CUPCodes`, `EBooks`, `EmploymentCategorys`, `EventNotifications`, `EventSubscriptions`, `ExceptionalEvents`, `Genders`, `IndiaHsn`, `PaymentReasonCodes`, `SBOUDT`, `SelfCreditMemos`, `SelfInvoices`, `ShortLinkMappings`, `TSRExceptionalEvents`, `TaxExemptReasons`, `U_SBOBULK`, `U_SBOCTXT` and `WTaxTypeCodes`. They are outside the scope of the extended read, so a request for them answers as in the native Service Layer. Against 2108 the 2105 Service Layer also lacks `EBooks`, `EmploymentCategorys`, `ExceptionalEvents`, `PaymentReasonCodes` and `WTaxTypeCodes`.
+- **Hotfix:** `B110002105HF1_1` (FP2105 HF1) is another build with another build id (`10.0.160.0-0081a4cd7c9a-505983efec3f-f8f5f972aa4c`). This package does not serve it; check the build id of your installation against the one above.
+- **Not measured against a real 2105 Service Layer (all of it):** the 38 sets without rows (list below), the order of the child lines of CHD2, FNS1 and MDR1, user fields D with time, N with time and B with another edit type, `image` columns, dates with a time, `PageSize` of `b1s.conf`, `$batch` (not intercepted) and the authorizations of the user. The `$metadata` injected for the extended sets goes at the end of its section; the order of the native items of the 2105 Service Layer is not reproduced, which does not matter for the injected ones. The writer of the `$metadata` of the 2105 Service Layer emits the same 88 strings in the same order as 2108 but was not compared instruction by instruction, and `OnQuery` has the same 22 string references as 2108 but was not compared in depth. No end-to-end run against a real 2105 yet.
+
+### Sets whose retrieval could not be checked for lack of data
+
+For these the empty answer is identical to the native one, but the values (types, dates, enums, nulls, child lines, order) were never compared. If a customer uses one, test it.
+
+`AcknowledgementNumbers`, `BrazilServiceCodes`, `BrazilTaxAdjustments`, `ChecksForPaymentDrafts` (child CHD2), `CountWidgets`, `Counties`, `DataImportTemplates`, `DetailedCheckingRules`, `DistributionLists`, `EJABCompanyDetails`, `FixedAssetFiscalYearChanges`, `FolioNumberingDocuments`, `FolioNumberingSeries` (FNS1), `GstRegnTypes`, `ISDCreditMemos`, `ISDInvoices`, `ISDRecipientCreditMemos`, `ISDRecipientInvoices`, `IncomingPaymentOrders`, `InventoryCountingDrafts`, `InventoryOpeningBalanceDrafts`, `InventoryPostingDrafts`, `ItemMaterialTypes`, `MRPScenarios`, `ManualDistributionRules` (MDR1), `MenuAbbreviations`, `OutgoingPaymentOrders`, `POSCashRegisters`, `PointsOfIssues`, `PostdatedDeposits`, `ProcessChecklistInstances`, `ProcessChecklistTemplates`, `ProductSourceCodes`, `RecurringTransactionTemplates`, `RetailChains`, `UnencumberedICMSExemptionReasons`, `WorkflowInstances` and `WorkflowTemplateManagers`.
+
+The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled from the engine, but it was not seen working: those are the first to check.
+
+### Other things not measured
+
+- User fields (`U_*`): the JSON rule is decompiled for every type, but the test company only has types A, B (scale), D, M and N. Types D with time, N with time (`TimeOfDay`) and B with another edit type were not seen working; a column whose physical type does not match the rule answers 501 instead of a guess.
+- The JSON of `image` columns and filters not measured answer 501 by design, and so does a `$filter` with a date literal that has a time other than 00:00:00.
+- Dates: the native Service Layer drops the time of a `datetime` column when it loads the value, so the connector serves only the date (see the first particularity). Not seen with live data.
+- `$batch` is not intercepted: an extended set read inside a `$batch` goes to the Service Layer, which answers as if the set did not exist. MCP clients read with plain GET.
+- The `$metadata` injected for the extended sets has no navigation properties, bindings or user fields; its `PageSize` of `b1s.conf` follows the same conventions and the same manual option as in [SP2408](#sp2408-b11000sp_2408), and is not measured against a 2105.
+- Reads go through SQL: the B1 authorizations of the user are not applied.
