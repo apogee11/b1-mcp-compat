@@ -124,9 +124,10 @@
 <rect x="613.64" y="155.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="618.64" y="171.00" text-anchor="start" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2305</text>
 </g>
-<g><title>2202: 2/2 - FP2202 (B11000_2202): supported; FP2202 HF1 (B110002202HF1_1): supported</title>
-<rect x="705.55" y="31.00" width="88.91" height="61.50" fill="#d29922" stroke="#0d1117" stroke-width="0.5"/>
+<g><title>2202: 2/2 - FP2202 (B11000_2202): extended (93.0% of 2608); FP2202 HF1 (B110002202HF1_1): supported</title>
+<rect x="705.55" y="31.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="710.55" y="86.50" text-anchor="start" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">FP</text>
+<text x="789.45" y="86.50" text-anchor="end" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">93.0%</text>
 <rect x="705.55" y="92.50" width="88.91" height="61.50" fill="#d29922" stroke="#0d1117" stroke-width="0.5"/>
 <text x="710.55" y="148.00" text-anchor="start" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="704.55" y="30.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
