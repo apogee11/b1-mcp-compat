@@ -29,4 +29,4 @@ Then, optionally, the end-to-end test (needs the published connector exe, the `b
 cd tools\e2e
 .\e2e.ps1 -SlUrl https://SLSERVER:50000 -Company YOURCOMPANYDB -User manager -Exe ..\..\compat\publish\B1.Mcp.Compat.Host.exe
 ```
-The connector reads `OPFS` from the company database with Integrated Security by default; for a SQL login add `-SqlConnection 'Server=SQLHOST;User Id=USER;Password=PWD;TrustServerCertificate=true;Initial Catalog={CompanyDB}'`.
+The connector reads `OPFS` from the company database with Integrated Security by default; for a SQL login add `-SqlConnection 'Server=SQLHOST;User Id=USER;Password=PWD;TrustServerCertificate=true;Initial Catalog={CompanyDB}'`. If the Service Layer uses a self-signed certificate add `-SkipTlsVerify`.

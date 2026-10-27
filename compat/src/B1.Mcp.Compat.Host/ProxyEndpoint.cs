@@ -465,6 +465,9 @@ public sealed partial class ProxyEndpoint
         res.StatusCode = (int)r.StatusCode;
         foreach (var h in r.Headers.Concat(r.Content.Headers))
             if (!SkipResponseHeaders.Contains(h.Key)) res.Headers[h.Key] = h.Value.ToArray();
+        // .NET re-serializes Content-Type with a space after each ';'; the native Service Layer sends none.
+        if (res.Headers.TryGetValue("Content-Type", out var ct) && ct.Count > 0)
+            res.Headers["Content-Type"] = ct.ToString().Replace("; ", ";", StringComparison.Ordinal);
         var plain = !ctx.Request.IsHttps;
         if (r.Headers.TryGetValues("Set-Cookie", out var cookies))
         {
