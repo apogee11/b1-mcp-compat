@@ -58,3 +58,56 @@ The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled 
 - Order of the injected items in the flat `$metadata` (decision closed 2026-10-27, a convention and not a heuristic): every type a native 2408 lacks goes at the end of its section (ComplexType, EntityType, EntitySet), in ordinal UTF-16 name order; enums go to their ordinal place among the native ones. It is not measured against a 2408.
 - Not measured: the position of the injected entity types and entity sets against a native 2408 (the native order is an internal container order, not alphabetical; see the convention above). The `PageSize` key of the Service Layer `b1s.conf` cannot be read by the connector (it is on another machine). Decision (closed 2026-10-27): the option `B1McpCompat__PageSize` (default 20, the native default) is the only source besides the request headers; an administrator who sets `PageSize` in `b1s.conf` must set the same value in this option by hand.
 - Reads go through SQL: the B1 authorizations of the user are not applied.
+
+## SP2505 (`B11000SP_2505`)
+
+Build id: `10.0.290.0-c9ae21daeed4-55fe44b82e4d-3443b8dca453`. Share of the 2608 sets served by the extended read: 28.8% (132 of 458, formula in [supported-builds.md](supported-builds.md#extended-support-and--of-2608)).
+
+Status: implemented, **not yet measured against a real 2505 Service Layer**.
+
+140 sets in the package: 132 served, 8 not available in this build (they answer 400 "Not available in this version").
+
+| Result against the 2608 test company | Sets |
+|---|---|
+| Identical JSON, with rows | 92 |
+| Not available in this build (400 by design) | 8 |
+| Expected differences | 1: `TaxDeclarationBoxes` (length of `BoxDefinitionRows` only; positional link of BOX1-4 replicated from the engine) |
+| **Not checked: no rows to compare** | 39 (below) |
+
+### Particularities
+
+Everything specific to this build, in one place. Details are in the sections below.
+
+- **Tables that do not exist in 2505 SP (8 sets not available, they answer 400 "Not available in this version"):** `CAEAInformations` (CAEA), `DatevRuns` (ODTV), `DatevTransactionsDeliveriesAndServices` (ODTS), `ElsterRun` (OELS, ELS1-3; `TaxReportFilterElster` goes with it), `ISDDocuments` (child ISD3; 5 columns of OISD are also missing), `ImportToExcels` (OIMP, IMP1-3), `WTaxCategories` (OWCT), `WTaxRelationTypes` (OWRT). There is nothing to serve: the engine of this build has no such table.
+- **Columns that do not exist (not announced, not returned):** none. All the columns of the 132 served sets exist in 2505 SP.
+- **Difference with 2408 SP:** 2505 SP serves three sets more, because their table or column exists: `PersonalDataRetentionPeriods` (ODRP), `PersonalFieldsSetups` (`SysDefined` exists) and `TaxDeclarationBoxes` (`Remarks` exists). No alias is needed for `DeductibleTaxes` (the 2505 dictionary already calls it that; 2408 SP calls it `DeductibleTaxs`). 132 served here against 131 in 2408 SP.
+- **Expected parity differences against the 2608 test company:** `TaxDeclarationBoxes`, only the length of `BoxDefinitionRows` (the only DIFF of the parity run; 92 OK, 39 no data, 8 unavailable as designed). `Remarks` does not differ.
+- **Engine defects replicated, not fixed:** in `TaxDeclarationBoxes` the child BOX1-4 is joined by position and, because its PRIMARY key has another order in 2505 SP, it joins `SeqNum`/`Account`/`Value` with `BosCode` of the parent. The length of `BoxDefinitionRows` follows that join (`engineQuirk` `join-posicional-orden-distinto`).
+- **Not measured against a real 2505 Service Layer (all of it):** the 39 sets without rows (list below, `PersonalDataRetentionPeriods` among them: its table is empty in the test company), the order of the child lines of CHD2/FNS1/MDR1, user fields D with time, N with time and B with another edit type, `image` columns, dates with a time, `$metadata` order of the injected items, `PageSize` of `b1s.conf`, `$batch` (not intercepted). The `$metadata` writer and the functions that add actions and complex types of the 2505 Service Layer were not compared in full with the ones of 2608 (some code paths were not decompiled). No end-to-end run against a real 2505 yet.
+
+### Sets whose retrieval could not be checked for lack of data
+
+For these the empty answer is identical to the native one, but the values (types, dates, enums, nulls, child lines, order) were never compared. If a customer uses one, test it.
+
+**The test Service Layer does not let you create rows** (error `-1008`; the DI API has only `Get`/`GetList` for most of them, so this is the engine, not the REST API):
+`ChecksForPaymentDrafts` (child CHD2), `FolioNumberingSeries` (FNS1), `ManualDistributionRules` (MDR1), `DataImportTemplates`, `FixedAssetFiscalYearChanges`, `FolioNumberingDocuments`, `GstRegnTypes`, `IncomingPaymentOrders`, `OutgoingPaymentOrders`, `PostdatedDeposits`, `InventoryCountingDrafts`, `InventoryOpeningBalanceDrafts`, `InventoryPostingDrafts`, `ItemMaterialTypes`, `MRPScenarios`, `MenuAbbreviations`, `ProcessChecklistTemplates`, `ProcessChecklistInstances`, `RecurringTransactionTemplates`, `RetailChains`, `UnencumberedICMSExemptionReasons`, `WorkflowInstances`, `WorkflowTemplateManagers`.
+
+**Need a localization or a fiscal setup the test company does not have:**
+`BrazilServiceCodes`, `BrazilTaxAdjustments`, `Counties`, `ISDInvoices`, `ISDCreditMemos`, `ISDRecipientInvoices`, `ISDRecipientCreditMemos`, `AcknowledgementNumbers` (needs a fiscal year), `CountWidgets` (needs a saved query), `EJABCompanyDetails`.
+
+**Creation failed with an engine error that was not investigated:**
+`DetailedCheckingRules`, `DistributionLists`, `POSCashRegisters`, `PointsOfIssues`, `ProductSourceCodes`.
+
+**Not seeded:** `PersonalDataRetentionPeriods` (the table is empty in the test company; no data to compare).
+
+The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled from the engine, but it was not seen working: those are the first to check.
+
+### Other things not measured
+
+- User fields (`U_*`): the JSON rule is decompiled for every type, but the test company only has types A, B (scale), D, M and N. Types D with time, N with time (`TimeOfDay`) and B with another edit type were not seen working; a column whose physical type does not match the rule answers 501 instead of a guess.
+- The JSON of `image` columns and filters not measured answer 501 by design, and so does a `$filter` with a date literal that has a time other than 00:00:00.
+- Dates: the native Service Layer drops the time of a `datetime` column when it loads the value, so the connector serves the date as `T00:00:00Z`. Not seen with live data.
+- `ISDInvoices`, `ISDCreditMemos`, `ISDRecipientInvoices` and `ISDRecipientCreditMemos`: the column `HandWritten` is served from the column `HandWrtten`, as the native query does; its value was not compared (the tables are empty in the test company).
+- `$batch` is not intercepted: an extended set read inside a `$batch` goes to the Service Layer, which answers as if the set did not exist. MCP clients read with plain GET.
+- The `$metadata` injected for the extended sets has no navigation properties, bindings or user fields; its order and the `PageSize` of `b1s.conf` follow the same conventions and the same manual option as in [SP2408](#sp2408-b11000sp_2408), and are not measured against a 2505.
+- Reads go through SQL: the B1 authorizations of the user are not applied.
