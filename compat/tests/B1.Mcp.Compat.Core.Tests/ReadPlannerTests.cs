@@ -64,7 +64,7 @@ internal static class ReadTestData
           "children": [], "rules": [ { "name": "clave-compuesta-enum-select-400" } ]
         }
       },
-      "unavailable": { "Gone": { "table": "OGON", "missingTables": ["OGON"], "reason": "table-missing" } }
+      "unavailable": { "Gone": { "table": "OGON", "missingTables": ["OGON"], "reason": "table-missing" }, "Keyless": { "table": "OKEY", "missingTables": [], "missingColumns": ["Split"], "reason": "key-column-missing" } }
     }
     """;
 
@@ -109,6 +109,14 @@ public class ReadPackageTests
         var p = ReadPackage.LoadGz(ms);
         Assert.Same(p.Resolve("Things").Set, p.Resolve("Thingies").Set);
         Assert.Null(p.Resolve("Nope").Set);
+    }
+
+    [Fact]
+    public void UnavailableSetWithAMissingKeyColumnNamesTheColumns()
+    {
+        var e = Assert.Throws<ReadException>(() => ReadPlanner.Plan(ReadTestData.Pkg(), "Keyless?$top=1"));
+        Assert.Equal(400, e.Status);
+        Assert.Contains("table OKEY lacks the columns Split", e.Message);
     }
 
     [Fact]

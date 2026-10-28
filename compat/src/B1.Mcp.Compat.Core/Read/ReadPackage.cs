@@ -81,6 +81,9 @@ public sealed class ReadUnavailable
 {
     [JsonPropertyName("table")] public string Table { get; set; } = "";
     [JsonPropertyName("missingTables")] public List<string> MissingTables { get; set; } = new();
+    /// <summary>Optional: "key-column-missing" when the table exists but lacks a column of the set's key (so the set's key differs in this build); absent = "table-missing".</summary>
+    [JsonPropertyName("reason")] public string? Reason { get; set; }
+    [JsonPropertyName("missingColumns")] public List<string> MissingColumns { get; set; } = new();
 }
 
 public sealed class ReadBuildInfo
@@ -202,7 +205,11 @@ public sealed class ReadPackage
             }
             foreach (var a in s.Aliases) if (!Sets.ContainsKey(a)) _aliases[a] = name;
         }
-        foreach (var (name, u) in Unavailable) Check(name, u.Table);
+        foreach (var (name, u) in Unavailable)
+        {
+            Check(name, u.Table);
+            if (u.Reason != null && u.Reason != "table-missing" && u.Reason != "key-column-missing") throw new InvalidDataException($"Read package: unknown unavailable reason '{u.Reason}' (set '{name}').");
+        }
         if (Edm != null) ValidateEdm();
     }
 
@@ -258,5 +265,6 @@ public sealed class ReadPackage
 
     /// <summary>The "not available in this version" error of a set whose table is missing in this build.</summary>
     public ReadException UnavailableError(ReadUnavailable u) => new(400, "200",
-        $"Not available in this version of SAP Business One (build {Build.BuildId}): table {u.Table} is missing.");
+        $"Not available in this version of SAP Business One (build {Build.BuildId}): " +
+        (u.Reason == "key-column-missing" ? $"table {u.Table} lacks the columns {string.Join(", ", u.MissingColumns)}, so its key is not the one of the SAP Business One 2608 contract." : $"table {u.Table} is missing."));
 }
