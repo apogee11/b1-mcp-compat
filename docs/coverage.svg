@@ -84,9 +84,10 @@
 <rect x="431.82" y="30.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="436.82" y="46.00" text-anchor="start" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2408</text>
 </g>
-<g><title>2405: 2/2 - FP2405 (B11000_2405): supported; FP2405 HF1 (B110002405HF_1): supported</title>
-<rect x="432.82" y="156.00" width="88.91" height="61.50" fill="#d29922" stroke="#0d1117" stroke-width="0.5"/>
+<g><title>2405: 2/2 - FP2405 (B11000_2405): extended (96.7% of 2608); FP2405 HF1 (B110002405HF_1): supported</title>
+<rect x="432.82" y="156.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="437.82" y="211.50" text-anchor="start" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">FP</text>
+<text x="516.73" y="211.50" text-anchor="end" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">96.7%</text>
 <rect x="432.82" y="217.50" width="88.91" height="61.50" fill="#d29922" stroke="#0d1117" stroke-width="0.5"/>
 <text x="437.82" y="273.00" text-anchor="start" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="431.82" y="155.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>

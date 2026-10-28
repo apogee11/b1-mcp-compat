@@ -37,7 +37,7 @@ Source: SAP Software Center, SAP Business One 10.0 installations (46 packages). 
 | 15 | `B110002408HF_1` | SP2408 HF1 | hotfix | 2024-10-25 | 8,752,012 | `10.0.261.0-e44bfcceec1c-fb0fef35fc12-3f10840fe99a` | yes | no | no | 68.3% |
 | 16 | `B11000SP_2408` | SP2408 | base | 2024-08-23 | 8,748,689 | `10.0.260.0-ea80448581ff-fe6cbe19acb9-b03b314fdd6c` | yes | no | [yes](build-notes.md#sp2408-b11000sp_2408) | 96.9% |
 | 17 | `B110002405HF_1` | FP2405 HF1 | hotfix | 2024-08-01 | 8,757,335 | `10.0.251.0-fceb66cf007a-84dfbcbf9907-1dbfe4d72949` | yes | no | no | 68.1% |
-| 18 | `B11000_2405` | FP2405 | base | 2024-05-31 | 8,758,780 | `10.0.250.0-537dc1b598f3-965643cd4ef9-1ac38b8075b1` | yes | no | no | 68.1% |
+| 18 | `B11000_2405` | FP2405 | base | 2024-05-31 | 8,758,780 | `10.0.250.0-537dc1b598f3-965643cd4ef9-1ac38b8075b1` | yes | no | [yes](build-notes.md#fp2405-b11000_2405) | 96.7% |
 | 19 | `B110002402HF_1` | SP2402 HF1 | hotfix | 2024-04-04 | 8,666,692 | `10.0.240.0-cfc78a25a91a-565dd22ffdb5-b08d9f7e79be` | yes | no | no | 67.7% |
 | 20 | `B11000SP_2402` | SP2402 | base | 2024-02-02 | 8,666,143 | `10.0.240.0-b04e4db08c43-2bd6f6550ccb-2a7e7add7c82` | yes | no | [yes](build-notes.md#sp2402-b11000sp_2402) | 95.4% |
 | 21 | `B110002311HF_1` | SP2311 HF1 | hotfix | 2024-01-24 | 8,689,832 | `10.0.230.0-89eae06e805b-d6a0b87cb2cb-2e429d562882` | yes | no | no | 67.7% |
