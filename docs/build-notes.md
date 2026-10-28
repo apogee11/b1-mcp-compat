@@ -361,6 +361,53 @@ The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled 
 - The `$metadata` injected for the extended sets has no navigation properties, bindings or user fields; its `PageSize` of `b1s.conf` follows the same conventions and the same manual option as in [SP2408](#sp2408-b11000sp_2408), and is not measured against a 2308.
 - Reads go through SQL: the B1 authorizations of the user are not applied.
 
+## FP2305 (`B11000_2305`)
+
+Build id: `10.0.210.0-86df99d89132-3aade838ff2c-bafcc6c5b722`. Total share of the 2608 sets: 94.8% (308 native + 126 extended = 434 of 458; the extended read alone adds 27.5%; formula in [supported-builds.md](supported-builds.md#extended-support-and--of-2608)).
+
+Status: implemented, **not yet measured against a real 2305 Service Layer**.
+
+140 sets in the package: 126 served, 14 not available in this build (they answer 400 "Not available in this version"). None of the 126 is exposed under the same name by the 2305 Service Layer, so the extended read serves all of them.
+
+| Result against the 2608 test company | Sets |
+|---|---|
+| Identical JSON, with rows | 86 |
+| Not available in this build (400 by design) | 14 |
+| Expected differences | 2: `PersonalFieldsSetups` (column `IsSystemDefined` not returned) and `TaxDeclarationBoxes` (column `Remarks` not returned; length of `BoxDefinitionRows`) |
+| **Not checked: no rows to compare** | 38 (below) |
+
+### Particularities
+
+Everything specific to this build, in one place. Details are in the sections below and in [SP2408](#sp2408-b11000sp_2408) and [FP2208](#fp2208-b11000_2208), whose conventions apply here too.
+
+- **Tables that do not exist in 2305 (14 sets not available, they answer 400 "Not available in this version"):** `ATDocumentTypes` (OSDT), `CAEAInformations` (CAEA), `DatevRuns` (ODTV), `DatevTransactionsDeliveriesAndServices` (ODTS), `ElsterRun` (OELS, ELS1-3), `ISDDocuments` (ISD3), `ImportToExcels` (OIMP, IMP1-3), `OfficialAccountCodes` (OOAC), `PersonalDataRetentionPeriods` (ODRP), `SAFTProductTypes` (OSPT), `SAFTTaxCodes` (OSTX), `SAFTTransactionTypes` (OSTE), `WTaxCategories` (OWCT) and `WTaxRelationTypes` (OWRT). There is nothing to serve: the engine of this build has no such table.
+- **Columns that do not exist (not announced, not returned):** `PersonalFieldsSetups.SysDefined` (the property `IsSystemDefined`) and `TaxDeclarationBoxes.Remarks`. The 2608 returns them; the 2305 tables have no such column, so they are omitted instead of invented.
+- **Difference with 2208:** 2305 serves five sets more, because their tables exist here: `DeductibleTaxes` (ORTG) and four `EBooks` sets (`EBooksFeesCategories`, `EBooksOtherTaxCategories`, `EBooksRecordTypes`, `EBooksStampDutyCategories`). **Difference with 2408 SP:** 2305 serves five sets less (`ATDocumentTypes` and the three `SAFT*` sets, `OfficialAccountCodes`); against 2402 SP it serves one less (`OfficialAccountCodes`). 126 served here, against 121 in 2208, 127 in 2402 SP and 131 in 2408 SP.
+- **Alias:** the engine of this build calls the table `DeductibleTaxs` and the 2608 calls it `DeductibleTaxes`, so the package answers to both names and the 2305 Service Layer already exposes `DeductibleTaxs` natively. Which of the two routes serves a request on a real 2305 session was not measured (the connector decides by the exact name in the `$metadata` of the session).
+- **Expected parity differences against the 2608 test company:** `PersonalFieldsSetups` (`IsSystemDefined` only in the 2608) and `TaxDeclarationBoxes` (`Remarks` only in the 2608, and the length of `BoxDefinitionRows`). Both are the two DIFF of the parity run (86 OK, 38 no data, 14 unavailable as designed, 2 DIFF); the 38 sets without rows are the same as in 2208.
+- **Engine defects replicated, not fixed:** in `TaxDeclarationBoxes` the child BOX1-4 is joined by position and, because its PRIMARY key has another order, it joins `SeqNum`/`Account`/`Value` with `BosCode` of the parent; the length of `BoxDefinitionRows` follows that join (`engineQuirk` `join-posicional-orden-distinto`). The same defect exists in the 2305 engine. In 2305 `OBOX` has no `Remarks` column, which the connector omits.
+- **Physical types specific to 2305** (they only change the informative SQL type of the column, not the JSON): `BPLName` is `A(100)` here (`A(200)` in 2402 SP and 2408 SP) in `OCHD`, `OICD`, `OIOD`, `OIPD`, `OIRI`, `OIRR`, `OISC` and `OISI`, and `VendorName` of `OCHD` is `A(100)`; `OBOX.Formula` (`TaxDeclarationBoxes`) is `ntext` (it is `A(250)` in 2208).
+- **Sets that the 2305 Service Layer does not expose but the 2408 SP does, not covered by this package (not served):** `CIGCodes`, `CUPCodes`, `Genders`, `SelfCreditMemos` and `SelfInvoices`. They are outside the scope of the extended read, so a request for them answers as in the native Service Layer.
+- **Hotfix:** `B110002305HF_1` (FP2305 HF1) is another build with another build id. This package does not serve it; check the build id of your installation against the one above.
+- **Not measured against a real 2305 Service Layer (all of it):** the 38 sets without rows (list below), the order of the child lines of CHD2, FNS1 and MDR1, user fields D with time, N with time and B with another edit type, `image` columns, dates with a time, `PageSize` of `b1s.conf`, `$batch` (not intercepted) and the authorizations of the user. The `$metadata` injected for the extended sets goes at the end of its section; the order of the native entity types, entity sets and complex types of the 2305 Service Layer was not reproduced, which does not matter for the injected items. The rules of the read path were checked in the code of this build against FP2308, which is instruction-identical in them: the order of the child lines (`GOGetArray`, `GOGetArray4SL`), `DefaultGetByKey`, `GetByKey`, the user-field type, value and JSON serializer, the user-field column definition, the writer of the `$metadata` v4 and the 206 `OnGetByKey` overrides (only line numbers of log calls differ). `OnQuery` is the same except in the `$count` branch, where 2305 builds the number with `Json::StyledWriter` and then strips line breaks and spaces, while 2308 uses a `StreamWriterBuilder` helper; both give `57` without a line break, as the native 2608 does, but this was not seen with live data. Not decompiled in this build: `AddFunctions`, `GetServiceParamsList` and the order of the native items of the `$metadata`. No end-to-end run against a real 2305 yet.
+
+### Sets whose retrieval could not be checked for lack of data
+
+For these the empty answer is identical to the native one, but the values (types, dates, enums, nulls, child lines, order) were never compared. If a customer uses one, test it.
+
+`AcknowledgementNumbers`, `BrazilServiceCodes`, `BrazilTaxAdjustments`, `ChecksForPaymentDrafts` (child CHD2), `CountWidgets`, `Counties`, `DataImportTemplates`, `DetailedCheckingRules`, `DistributionLists`, `EJABCompanyDetails`, `FixedAssetFiscalYearChanges`, `FolioNumberingDocuments`, `FolioNumberingSeries` (FNS1), `GstRegnTypes`, `ISDCreditMemos`, `ISDInvoices`, `ISDRecipientCreditMemos`, `ISDRecipientInvoices`, `IncomingPaymentOrders`, `InventoryCountingDrafts`, `InventoryOpeningBalanceDrafts`, `InventoryPostingDrafts`, `ItemMaterialTypes`, `MRPScenarios`, `ManualDistributionRules` (MDR1), `MenuAbbreviations`, `OutgoingPaymentOrders`, `POSCashRegisters`, `PointsOfIssues`, `PostdatedDeposits`, `ProcessChecklistInstances`, `ProcessChecklistTemplates`, `ProductSourceCodes`, `RecurringTransactionTemplates`, `RetailChains`, `UnencumberedICMSExemptionReasons`, `WorkflowInstances`, `WorkflowTemplateManagers`.
+
+The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled from the engine, but it was not seen working: those are the first to check.
+
+### Other things not measured
+
+- User fields (`U_*`): the JSON rule is decompiled for every type, but the test company only has types A, B (scale), D, M and N. Types D with time, N with time (`TimeOfDay`) and B with another edit type were not seen working; a column whose physical type does not match the rule answers 501 instead of a guess.
+- The JSON of `image` columns and filters not measured answer 501 by design, and so does a `$filter` with a date literal that has a time other than 00:00:00.
+- Dates: the native Service Layer drops the time of a `datetime` column when it loads the value, so the connector serves the date as `T00:00:00Z`. Not seen with live data.
+- `$batch` is not intercepted: an extended set read inside a `$batch` goes to the Service Layer, which answers as if the set did not exist. MCP clients read with plain GET.
+- The `$metadata` injected for the extended sets has no navigation properties, bindings or user fields; its `PageSize` of `b1s.conf` follows the same conventions and the same manual option as in [SP2408](#sp2408-b11000sp_2408), and is not measured against a 2305.
+- Reads go through SQL: the B1 authorizations of the user are not applied.
+
 ## FP2202 (`B11000_2202`)
 
 Build id: `10.0.190.0-16386a021d32-3d5447646399-acc3726c1513`. Total share of the 2608 sets: 93.0% (305 native + 121 extended = 426 of 458; the extended read alone adds 26.4%; formula in [supported-builds.md](supported-builds.md#extended-support-and--of-2608)).
