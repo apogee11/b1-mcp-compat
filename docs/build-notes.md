@@ -546,3 +546,58 @@ The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled 
 - `$batch` is not intercepted: an extended set read inside a `$batch` goes to the Service Layer, which answers as if the set did not exist. MCP clients read with plain GET.
 - The `$metadata` injected for the extended sets has no navigation properties, bindings or user fields; its order and the `PageSize` of `b1s.conf` follow the same conventions and the same manual option as in [SP2408](#sp2408-b11000sp_2408), and are not measured against a 2605.
 - Reads go through SQL: the B1 authorizations of the user are not applied.
+
+## SP2511 (`B11000SP_2511`)
+
+Build id: `10.0.310.0-ee6913dffe5b-7b4838227ade-e4634e8a197c`. Total share of the 2608 sets: 97.8% (319 native + 135 extended, 6 of them in both = 448 of 458; the extended read alone adds 29.5%; formula in [supported-builds.md](supported-builds.md#extended-support-and--of-2608)).
+
+Status: implemented, **not yet measured against a real 2511 Service Layer**.
+
+140 sets in the package: 135 served, 5 not available in this build (they answer 400 "Not available in this version"). 6 of the 135 are sets that the 2511 Service Layer already exposes: it answers them, not the connector.
+
+| Result against the 2608 test company | Sets |
+|---|---|
+| Identical JSON, with rows | 92 |
+| Not available in this build (400 by design) | 5 |
+| Expected differences | 1: `TaxDeclarationBoxes` (length of `BoxDefinitionRows` only; positional link of BOX1-4 replicated from the engine) |
+| **Not checked: no rows to compare** | 42 (below) |
+
+### Particularities
+
+Everything specific to this build, in one place. Details are in the sections below and in [SP2408](#sp2408-b11000sp_2408), [SP2505](#sp2505-b11000sp_2505), [FP2602](#fp2602-b11000_2602) and [SP2605](#sp2605-b11000sp_2605), whose conventions apply here too.
+
+- **Tables that do not exist in 2511 (5 sets not available, they answer 400 "Not available in this version"):** `DatevRuns` (ODTV), `DatevTransactionsDeliveriesAndServices` (ODTS), `ElsterRun` (OELS, ELS1-3; `TaxReportFilterElster` goes with it), `ISDDocuments` (its child ISD3 is missing; ISD1 and ISD2 exist, so the other four ISD sets are served) and `ImportToExcels` (OIMP, IMP1-3). There is nothing to serve: the engine of this build has no such table. `ScheduleJobs` is outside the scope of the extended read.
+- **Columns that do not exist (not announced, not returned):** none omitted. `ManualDistributionRules` is served without `DTVId`, because that column belongs to ODTV, which 2511 does not have (2605 has it).
+- **Difference with 2605:** the package serves the same 135 sets that 2605 serves except the three whose table is missing here (`DatevRuns`, `DatevTransactionsDeliveriesAndServices`, `ISDDocuments`); columns, types, nullability, joins and property order are the same except the `DTVId` above. **Difference with 2505 SP:** 2511 serves three sets more, because their tables exist: `CAEAInformations`, `WTaxCategories` and `WTaxRelationTypes`. New columns: `SpecificWTHAmountsService` (`WHTRelCode`, `AmtDedUsed`), `PointsOfIssues` (`CAEARqtFrm`, `Regime`); `SpecificWTHAmountsService.Category` is `nvarchar(3)` (`char(1)` in 2505 SP). 135 served here against 132 in 2505 SP and 138 in 2605.
+- **Sets the 2511 Service Layer already exposes (6): the connector leaves them to the Service Layer.** `CentralBankIndicator`, `Counties`, `DeductibleTaxes`, `InventoryCountingDrafts`, `RecurringTransactionTemplates`, `SpecificWTHAmountsService`. A request is intercepted only when the `$metadata` of the Service Layer of that session does not list the exact name asked, so these are never served from the package. That the 2511 Service Layer exposes them comes from the knowledge base of the build, not from a live 2511; if one is missing from your `$metadata`, the connector serves it from the package. The extended read serves the other 129. Unlike 2602 and 2605, the 2511 Service Layer does not expose `PaymentWizards`, `DistributionLists`, `InventoryOpeningBalanceDrafts`, `InventoryPostingDrafts` or the four ISD sets other than `ISDDocuments`: the connector serves them from the package.
+- **Complex types:** the 2511 `ServiceLayer.dll` does not contain `CompanySummary`, `Event` or `EventCatagory` (they appear in 2602 and later), so none of them is declared for this build, as in 2505 SP.
+- **Expected parity differences against the 2608 test company:** `TaxDeclarationBoxes`, only the length of `BoxDefinitionRows` (the only DIFF of the parity run; 92 OK, 42 no data, 5 unavailable as designed). `Remarks` does not differ. The parity run compares the connector with the package against the 2608, so it does not tell the 6 native sets apart.
+- **Engine defects replicated, not fixed:** in `TaxDeclarationBoxes` the child BOX1-4 is joined by position and, because its PRIMARY key has another order in 2511, it joins `SeqNum`/`Account`/`Value` with `BosCode` of the parent. The length of `BoxDefinitionRows` follows that join (`engineQuirk` `join-posicional-orden-distinto`).
+- **Not measured against a real 2511 Service Layer (all of it):** the 42 sets without rows (list below), the new columns, the order of the child lines of CHD2/FNS1/MDR1, user fields D with time, N with time and B with another edit type, `image` columns, dates with a time, `$metadata` order of the injected items, `PageSize` of `b1s.conf`, `$batch` (not intercepted). The compiled JSON serializer of the 2511 Service Layer is not instruction-identical to the 2602/2605 one (the compiler inlined a tree lookup); the strings (`T00:00:00Z`, `%02d:%02d:%02d`, `Recordset`, `Property`) and the type branches for user fields are the same, but the serializer was compared that way and not decompiled. `AddFunctions` and `GetServiceParamsList` were not decompiled. For `WTaxCategories` and `WTaxRelationTypes` it is not shown that the engine reads their main row with the generic rule (they have no children, so the risk is only the main row). SP2511 HF1 (`B110002511HF_1`, another build id) is another build: the connector does not serve this package for it. No end-to-end run against a real 2511 yet.
+
+### Sets whose retrieval could not be checked for lack of data
+
+For these the empty answer is identical to the native one, but the values (types, dates, enums, nulls, child lines, order) were never compared. If a customer uses one, test it.
+
+**The test Service Layer does not let you create rows** (error `-1008`; the DI API has only `Get`/`GetList` for most of them, so this is the engine, not the REST API):
+`ChecksForPaymentDrafts` (child CHD2), `FolioNumberingSeries` (FNS1), `ManualDistributionRules` (MDR1), `DataImportTemplates`, `FixedAssetFiscalYearChanges`, `FolioNumberingDocuments`, `GstRegnTypes`, `IncomingPaymentOrders`, `OutgoingPaymentOrders`, `PostdatedDeposits`, `InventoryCountingDrafts`, `InventoryOpeningBalanceDrafts`, `InventoryPostingDrafts`, `ItemMaterialTypes`, `MRPScenarios`, `MenuAbbreviations`, `ProcessChecklistTemplates`, `ProcessChecklistInstances`, `RecurringTransactionTemplates`, `RetailChains`, `UnencumberedICMSExemptionReasons`, `WorkflowInstances`, `WorkflowTemplateManagers`.
+
+**Need a localization or a fiscal setup the test company does not have:**
+`BrazilServiceCodes`, `BrazilTaxAdjustments`, `Counties`, `ISDInvoices`, `ISDCreditMemos`, `ISDRecipientInvoices`, `ISDRecipientCreditMemos`, `AcknowledgementNumbers` (needs a fiscal year), `CountWidgets` (needs a saved query), `EJABCompanyDetails`.
+
+**Creation failed with an engine error that was not investigated:**
+`DetailedCheckingRules`, `DistributionLists`, `POSCashRegisters`, `PointsOfIssues`, `ProductSourceCodes`.
+
+**Not seeded (the table is empty in the test company; no data to compare, and whether rows can be created there was not investigated):** `PersonalDataRetentionPeriods`, and the three sets that 2511 serves over 2505: `CAEAInformations`, `WTaxCategories`, `WTaxRelationTypes`.
+
+The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled from the engine, but it was not seen working: those are the first to check.
+
+### Other things not measured
+
+- User fields (`U_*`): the JSON rule is decompiled for every type, but the test company only has types A, B (scale), D, M and N. Types D with time, N with time (`TimeOfDay`) and B with another edit type were not seen working; a column whose physical type does not match the rule answers 501 instead of a guess.
+- The JSON of `image` columns and filters not measured answer 501 by design, and so does a `$filter` with a date literal that has a time other than 00:00:00.
+- Dates: the native Service Layer drops the time of a `datetime` column when it loads the value, so the connector serves the date as `T00:00:00Z`. Not seen with live data.
+- `ISDInvoices`, `ISDCreditMemos`, `ISDRecipientInvoices` and `ISDRecipientCreditMemos`: the column `HandWritten` is served from the column `HandWrtten`, as the native query does; its value was not compared (the tables are empty in the test company). In 2511 the connector serves these four.
+- `$batch` is not intercepted: an extended set read inside a `$batch` goes to the Service Layer, which answers as if the set did not exist. MCP clients read with plain GET.
+- The `$metadata` injected for the extended sets has no navigation properties, bindings or user fields; its order and the `PageSize` of `b1s.conf` follow the same conventions and the same manual option as in [SP2408](#sp2408-b11000sp_2408), and are not measured against a 2511.
+- Reads go through SQL: the B1 authorizations of the user are not applied.
