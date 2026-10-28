@@ -27,7 +27,7 @@ Source: SAP Software Center, SAP Business One 10.0 installations (46 packages). 
 | 5 | `B110002602HF_1` | FP2602 HF1 | hotfix | 2026-04-06 | 9,321,500 | `10.0.321.0-489d5b52d4ef-29d40c83424c-2c40c492f212` | yes | no | no | 72.3% |
 | 6 | `B11000_2602` | FP2602 | base | 2026-02-03 | 9,324,393 | `10.0.320.0-1dbf7e7cfc75-a13b197811f4-92a0ab6f1a33` | yes | no | [yes](build-notes.md#fp2602-b11000_2602) | 98.9% |
 | 7 | `B110002511HF_1` | SP2511 HF1 | hotfix | 2025-12-12 | 9,143,904 | `10.0.311.0-6996db56b83e-643202867cee-196b1b2d2ccb` | yes | no | no | 69.7% |
-| 8 | `B11000SP_2511` | SP2511 | base | 2025-11-04 | 9,148,147 | `10.0.310.0-ee6913dffe5b-7b4838227ade-e4634e8a197c` | yes | no | no | 69.7% |
+| 8 | `B11000SP_2511` | SP2511 | base | 2025-11-04 | 9,148,147 | `10.0.310.0-ee6913dffe5b-7b4838227ade-e4634e8a197c` | yes | no | [yes](build-notes.md#sp2511-b11000sp_2511) | 97.8% |
 | 9 | `B11000_2508` | FP2508 | base | 2025-08-29 | 9,031,483 | `10.0.300.0-9569a4cb63be-521580d249f8-fe631fa0592c` | yes | no | no | 69.7% |
 | 10 | `B110002505HF_1` | SP2505 HF1 | hotfix | 2025-07-29 | 9,012,569 | `10.0.291.0-5666ed630281-53c79ec4fbbc-b6580c59ecbe` | yes | no | no | 69.2% |
 | 11 | `B11000SP_2505` | SP2505 | base | 2025-05-16 | 9,016,125 | `10.0.290.0-c9ae21daeed4-55fe44b82e4d-3443b8dca453` | yes | no | [yes](build-notes.md#sp2505-b11000sp_2505) | 97.2% |
