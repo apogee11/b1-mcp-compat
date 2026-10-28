@@ -48,7 +48,7 @@ Source: SAP Software Center, SAP Business One 10.0 installations (46 packages). 
 | 26 | `B11000_2011` | FP2011 | base | 2023-09-23 | 8,069,800 | `10.0.140.0-8d3df26fae3e-529fef948965-e1cbf097ef30` | yes | no | [yes](build-notes.md#fp2011-b11000_2011) | 89.7% |
 | 27 | `B11000_2208` | FP2208 | base | 2023-09-22 | 8,903,314 | `10.0.200.0-24aeb23de137-2eb48c85224f-c15ab35d594d` | yes | no | [yes](build-notes.md#fp2208-b11000_2208) | 93.4% |
 | 28 | `B11000_2202` | FP2202 | base | 2023-09-22 | 8,545,245 | `10.0.190.0-16386a021d32-3d5447646399-acc3726c1513` | yes | no | [yes](build-notes.md#fp2202-b11000_2202) | 93.0% |
-| 29 | `B11000_2111` | FP2111 | base | 2023-09-22 | 8,250,636 | `10.0.180.0-aa308db3b547-227cb5ad83ae-4ff91d5b89ef` | yes | no | no | 65.9% |
+| 29 | `B11000_2111` | FP2111 | base | 2023-09-22 | 8,250,636 | `10.0.180.0-aa308db3b547-227cb5ad83ae-4ff91d5b89ef` | yes | no | [yes](build-notes.md#fp2111-b11000_2111) | 92.1% |
 | 30 | `B11000_2108` | FP2108 | base | 2023-09-22 | 8,310,235 | `10.0.170.0-a343684ff5ba-dbb1d3fec4f7-abc37fe997bd` | yes | no | [yes](build-notes.md#fp2108-b11000_2108) | 92.1% |
 | 31 | `B11000_2308` | FP2308 | base | 2023-09-21 | 8,311,364 | `10.0.220.0-7b134f389818-4de0723a3fd8-9a522b22fd4c` | yes | no | [yes](build-notes.md#fp2308-b11000_2308) | 94.8% |
 | 32 | `B11000_2305` | FP2305 | base | 2023-09-21 | 8,455,900 | `10.0.210.0-86df99d89132-3aade838ff2c-bafcc6c5b722` | yes | no | [yes](build-notes.md#fp2305-b11000_2305) | 94.8% |
