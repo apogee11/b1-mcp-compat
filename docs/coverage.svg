@@ -102,9 +102,10 @@
 <rect x="522.73" y="30.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
 <text x="527.73" y="46.00" text-anchor="start" font-family="sans-serif" font-size="12" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">2402</text>
 </g>
-<g><title>2311: 2/2 - SP2311 (B11000SP_2311): supported; SP2311 HF1 (B110002311HF_1): supported</title>
-<rect x="523.73" y="156.00" width="88.91" height="61.50" fill="#d29922" stroke="#0d1117" stroke-width="0.5"/>
+<g><title>2311: 2/2 - SP2311 (B11000SP_2311): extended (95.4% of 2608); SP2311 HF1 (B110002311HF_1): supported</title>
+<rect x="523.73" y="156.00" width="88.91" height="61.50" fill="#2ea043" stroke="#0d1117" stroke-width="0.5"/>
 <text x="528.73" y="211.50" text-anchor="start" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">SP</text>
+<text x="607.64" y="211.50" text-anchor="end" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">95.4%</text>
 <rect x="523.73" y="217.50" width="88.91" height="61.50" fill="#d29922" stroke="#0d1117" stroke-width="0.5"/>
 <text x="528.73" y="273.00" text-anchor="start" font-family="sans-serif" font-size="11" fill="#ffffff" stroke="#0d1117" stroke-width="3" paint-order="stroke">HF1</text>
 <rect x="522.73" y="155.00" width="90.91" height="125.00" fill="none" stroke="#0d1117" stroke-width="2"/>
