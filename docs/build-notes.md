@@ -445,3 +445,50 @@ The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled 
 - `$batch` is not intercepted: an extended set read inside a `$batch` goes to the Service Layer, which answers as if the set did not exist. MCP clients read with plain GET.
 - The `$metadata` injected for the extended sets has no navigation properties, bindings or user fields; its `PageSize` of `b1s.conf` follows the same conventions and the same manual option as in [SP2408](#sp2408-b11000sp_2408), and is not measured against a 2105.
 - Reads go through SQL: the B1 authorizations of the user are not applied.
+
+
+## FP2011 (`B11000_2011`)
+
+Build id: `10.0.140.0-8d3df26fae3e-529fef948965-e1cbf097ef30`. Total share of the 2608 sets: 89.7% (295 native + 116 extended = 411 of 458; the extended read alone adds 25.3%; formula in [supported-builds.md](supported-builds.md#extended-support-and--of-2608)).
+
+Status: implemented, **not yet measured against a real 2011 Service Layer**.
+
+140 sets in the package: 116 served, 24 not available in this build (they answer 400 "Not available in this version"). None of the 116 is exposed by the 2011 Service Layer, so the extended read serves all of them. The package is the one of [FP2105](#fp2105-b11000_2105) minus four sets (below): same columns, types, nullability, joins and order in the other 116, same `dateJson`.
+
+| Result against the 2608 test company | Sets |
+|---|---|
+| Identical JSON, with rows | 68 |
+| Not available in this build (400 by design) | 24 |
+| Expected differences | 10 (below): 8 because the 2011 writes dates without a time, 3 because of columns that 2011 does not have (`TaxDeclarationBoxes` has both) |
+| **Not checked: no rows to compare** | 38 (below) |
+
+### Particularities
+
+Everything specific to this build, in one place. The conventions of [FP2105](#fp2105-b11000_2105), [FP2108](#fp2108-b11000_2108) and [SP2408](#sp2408-b11000sp_2408) apply here too.
+
+- **Dates are written as `yyyy-mm-dd`, without `T00:00:00Z`.** The literal `T00:00:00Z` is not in the `ServiceLayer.dll` of this build (neither as UTF-8 nor as UTF-16). The date writer of that DLL (decompiled) formats with `%.4s-%.2s-%.2s` and appends nothing, and the property writer is the same code as in 2108 (compared after normalising addresses). The package therefore carries `dateJson: "date-only"` and the connector serves `"RateDate":"2012-02-29"` where the 2608 answers `"2012-02-29T00:00:00Z"`, in every date including user fields of type D. Not seen with live data.
+- **Tables that do not exist in 2011 (23 sets not available, they answer 400 "Not available in this version"):** the 20 of 2105 (`ATDocumentTypes`, `BlockExecutables`, `CAEAInformations`, `DatevRuns`, `DatevTransactionsDeliveriesAndServices`, `DeductibleTaxes`, `EBooksFeesCategories`, `EBooksOtherTaxCategories`, `EBooksRecordTypes`, `EBooksStampDutyCategories`, `ElsterRun`, `ISDDocuments`, `ImportToExcels`, `OfficialAccountCodes`, `PersonalDataRetentionPeriods`, `SAFTProductTypes`, `SAFTTaxCodes`, `SAFTTransactionTypes`, `WTaxCategories`, `WTaxRelationTypes`) plus `ApprovalAuthorizorReplacements` (OAAR), `LegalTextFormats` (OLTF, LTF1) and `LegalTextItems` (OLTI), which exist from 2105. There is nothing to serve: the engine of this build has no such table.
+- **A set whose key column does not exist (1 more set not available): `SpecificWTHAmountsService`.** Its table OSWA exists but has no `CUSplit` and no `SmRnNtWTx`, and `CUSplit` is part of the key of the 2608 contract (`PaymentReasonCode`, `CardCode`, `CUSplit`); in 2011 the PRIMARY key of OSWA is only (`PymntRsnCd`, `CardCode`). With another key the contract of the 2608 would not hold (key, `$metadata`, `GetByKey`), and the contract of a set that only the 2608 has cannot be read from the 2011 DLL, so the set is not served instead of serving it with a shortened key. It answers 400 "Not available in this version ... table OSWA lacks the columns CUSplit, SmRnNtWTx". The rule in the generator is general: a set is unavailable when a column of its key is absent from the table of the build.
+- **Columns that do not exist (not announced, not returned):** `ChecksForPaymentDrafts.ECheck`, `EBooksInvoiceTypes.SubmitedBy` (the property `SubmittedBy`) and `EBooksInvoiceTypes.SelfPrice` (the property `SelfPricing`), `PersonalFieldsSetups.SysDefined` (the property `IsSystemDefined`) and `TaxDeclarationBoxes.Remarks`. The 2608 returns them; the 2011 tables have no such column, so they are omitted instead of invented. Same five as 2105.
+- **Expected parity differences against the 2608 test company (10 DIFF in the parity run: 68 OK, 38 no data, 24 unavailable as designed, 10 DIFF):** dates without `T00:00:00Z` in `BoxSets`, `ExchangeRates`, `ExchangeRatesForReports`, `InterestRates`, `OpeningBalance1099s`, `PaymentWizards`, `TaxDeclarationBoxes` and `Thresholds`; `EBooksInvoiceTypes` (`SubmittedBy` and `SelfPricing` only in the 2608); `PersonalFieldsSetups` (`IsSystemDefined` only in the 2608); `TaxDeclarationBoxes` (also `Remarks` only in the 2608 and the length of `BoxDefinitionRows`). It is the list of 2105 without `ApprovalAuthorizorReplacements`, which 2011 does not have.
+- **Engine defects replicated, not fixed:** in `TaxDeclarationBoxes` the child BOX1-4 is joined by position and, because its PRIMARY key has another order, it joins `SeqNum`/`Account`/`Value` with `BosCode` of the parent; the length of `BoxDefinitionRows` follows that join (`engineQuirk` `join-posicional-orden-distinto`). `GOGetArray`, `GOGetArray4SL` and `DefaultGetByKey` are instruction-identical to 2105, so the defect exists in the 2011 engine.
+- **Sets that the 2011 Service Layer does not expose, not covered by this package (not served):** `AssetRevaluations`, `BEMReplicationPeriods`, `CESTCodes`, `CIGCodes`, `CUPCodes`, `EBooks`, `EmploymentCategorys`, `EventNotifications`, `EventSubscriptions`, `ExceptionalEvents`, `Genders`, `IndiaHsn`, `PaymentReasonCodes`, `SBOUDT`, `SelfCreditMemos`, `SelfInvoices`, `ShortLinkMappings`, `TSRExceptionalEvents`, `TaxExemptReasons`, `TaxReplStateSubs`, `U_SBOBULK`, `U_SBOCTXT` and `WTaxTypeCodes`. They are outside the scope of the extended read, so a request for them answers as in the native Service Layer. Against 2105 the 2011 Service Layer also lacks `CESTCodes` and `TaxReplStateSubs`.
+- **Hotfixes:** `B1100002011HF_1` (FP2011 HF1, `10.0.141.0-4c400c268031-48c9cfd2d7b2-6a7f4b0d4ee4`) and `B1100002011HF_2` (FP2011 HF2, `10.0.141.0-2fda1c6773f6-b50a9de0fcc6-d95b8015a90a`) are other builds with other build ids. This package does not serve them; check the build id of your installation against the one above.
+- **Not measured against a real 2011 Service Layer (all of it):** the 38 sets without rows (list below, the same as 2105), the order of the child lines of CHD2, FNS1 and MDR1, user fields D with time, N with time and B with another edit type, `image` columns, dates with a time, `PageSize` of `b1s.conf`, `$batch` (not intercepted) and the authorizations of the user. The `$metadata` injected for the extended sets goes at the end of its section; the order of the native items of the 2011 Service Layer is not reproduced, which does not matter for the injected ones. The `DataToDAG` function of the 2011 engine (which drops the time of a date column) is compiled differently from 2105 (other registers and loop shape): it uses the same `%4.4d%2.2d%2.2d` format but was not shown equivalent instruction by instruction. The writer of the `$metadata` and `OnQuery` of the 2011 Service Layer were not compared. No end-to-end run against a real 2011 yet.
+
+### Sets whose retrieval could not be checked for lack of data
+
+For these the empty answer is identical to the native one, but the values (types, dates, enums, nulls, child lines, order) were never compared. If a customer uses one, test it.
+
+`AcknowledgementNumbers`, `BrazilServiceCodes`, `BrazilTaxAdjustments`, `ChecksForPaymentDrafts` (child CHD2), `CountWidgets`, `Counties`, `DataImportTemplates`, `DetailedCheckingRules`, `DistributionLists`, `EJABCompanyDetails`, `FixedAssetFiscalYearChanges`, `FolioNumberingDocuments`, `FolioNumberingSeries` (FNS1), `GstRegnTypes`, `ISDCreditMemos`, `ISDInvoices`, `ISDRecipientCreditMemos`, `ISDRecipientInvoices`, `IncomingPaymentOrders`, `InventoryCountingDrafts`, `InventoryOpeningBalanceDrafts`, `InventoryPostingDrafts`, `ItemMaterialTypes`, `MRPScenarios`, `ManualDistributionRules` (MDR1), `MenuAbbreviations`, `OutgoingPaymentOrders`, `POSCashRegisters`, `PointsOfIssues`, `PostdatedDeposits`, `ProcessChecklistInstances`, `ProcessChecklistTemplates`, `ProductSourceCodes`, `RecurringTransactionTemplates`, `RetailChains`, `UnencumberedICMSExemptionReasons`, `WorkflowInstances` and `WorkflowTemplateManagers`.
+
+The order of the child lines of CHD2, FNS1 and MDR1 follows the rule decompiled from the engine, but it was not seen working: those are the first to check.
+
+### Other things not measured
+
+- User fields (`U_*`): the JSON rule is decompiled for every type, but the test company only has types A, B (scale), D, M and N. Types D with time, N with time (`TimeOfDay`) and B with another edit type were not seen working; a column whose physical type does not match the rule answers 501 instead of a guess.
+- The JSON of `image` columns and filters not measured answer 501 by design, and so does a `$filter` with a date literal that has a time other than 00:00:00.
+- Dates: the native Service Layer drops the time of a `datetime` column when it loads the value, so the connector serves only the date (see the first particularity). Not seen with live data.
+- `$batch` is not intercepted: an extended set read inside a `$batch` goes to the Service Layer, which answers as if the set did not exist. MCP clients read with plain GET.
+- The `$metadata` injected for the extended sets has no navigation properties, bindings or user fields; its `PageSize` of `b1s.conf` follows the same conventions and the same manual option as in [SP2408](#sp2408-b11000sp_2408), and is not measured against a 2011.
+- Reads go through SQL: the B1 authorizations of the user are not applied.
