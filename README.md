@@ -3,20 +3,22 @@
 
   # b1-mcp-compat
 
-  **Interoperability layer to use the SAP Business One MCP server with Service Layer versions older than 10.0 FP2608**
+ ### Compatibility layer for SAP Business One MCP across legacy builds
+
+  **Connect AI agents to your B1 data today. Zero upgrades.**
 
   [![.NET 10](https://img.shields.io/badge/.NET-10-512bd4)](https://dotnet.microsoft.com/)
+  [![MCP tool catalog](https://img.shields.io/badge/MCP-tool_catalog-5c4ee5?style=flat-square)](docs/mcp-contracts.md#generated-catalog)
   [![Node 22+](https://img.shields.io/badge/Node.js-22%2B-339933)](https://nodejs.org/)
-  [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+  [![MIT license](https://img.shields.io/badge/license-MIT-f4c430?style=flat-square)](LICENSE)
 
-  [Why](#why) | [How it works](#how-it-works) | [Requirements](#requirements) | [Getting started](#getting-started) | [See it working](#see-it-working-with-github-copilot) | [Run from the console](#run-from-the-console-no-windows-services) | [Agent instructions](#agent-instructions)
+  [Why](#why) | [How it works](#how-it-works) | [Requirements](#requirements) | [Getting started](#getting-started) | [Run from the console](#run-from-the-console-no-windows-services) | [Agent instructions](#agent-instructions)
 </div>
 
 <br>
 
-SAP ships an open-source [MCP server](https://help.sap.com/docs/SAP_BUSINESS_ONE/bb89a9939c294f14a7f532f7e76ade9e/9bdaeca12a424e6f9e3a0f4354651829.html?locale=en-US) that lets AI agents read and write Business One through the Service Layer. It only works with **10.0 FP2608 or later**. 
-
-If your partner maintains its own variant of the SAP official MCP server, the compatibility connector works with it as long as the core keeps talking to the Service Layer the same way.
+> [!IMPORTANT]
+> **b1-mcp-compat does not include, copy, redistribute or reimplement any SAP software, code, schema or documentation, and it is not a substitute for any SAP product.** It only translates between the MCP server and the Service Layer you already run, under your own SAP license. The work behind it is limited to what interoperability requires: the interface facts a client needs to call the Service Layer, which older builds do not publish in usable form. What is gathered is used for that and nothing else.
 
 ### Supported builds
 <!-- coverage:start -->
@@ -25,17 +27,11 @@ If your partner maintains its own variant of the SAP official MCP server, the co
 
 <!-- coverage:end -->
 
-Each cell is one Business One build. The MCP server is designed for FP 2608, whose Service Layer exposes a fixed list of entities and actions. Older builds expose fewer of them, so the connector fills the gap.
+- **Green: Service Layer extended support,** the connector also serves what the build's Service Layer lacks.
+- **Orange: MCP supported,** the connector works with what the build's own Service Layer exposes.
+- **Gray: not supported yet**
 
-- **Amber: supported.** The connector works with what the build's own Service Layer exposes.
-- **Green: extended support.** The connector also serves what the build's Service Layer lacks, using a read package that is bundled with the connector.
-- **Gray: not supported yet.**
-
-The **%** on a green cell is how much of FP 2608's list the build can reach. For example, 97.2% means 97.2% of what FP 2608 exposes works on that build.
-
-**A green cell below 100% is not unfinished work.** The remaining part does not exist in that build, so no connector can serve it. Green is the most that build can offer.
-
-Per-build figures are in [supported-builds.md](docs/supported-builds.md#extended-support-and--of-2608), and what was checked on each build is in [build-notes.md](docs/build-notes.md).
+If your partner maintains its own variant of the SAP official MCP server, the compatibility layer works with it as long as the core keeps talking to the Service Layer the same way.
 
 Support applies to an exact build, not to a whole release.
 
@@ -44,8 +40,6 @@ Support applies to an exact build, not to a whole release.
 Most Business One customers will not be on FP 2608 any time soon. This project closes that gap so AI can reach B1 data today, on the version customers already run.
 
 - **A clean exit.** The connector is built to disappear. When a customer upgrades to FP 2608, it passes everything through untouched, and the customer is left with the standard setup, not an ad hoc layer bent around old versions.
-
-When a customer asks their partner to connect AI to Business One, the answer should not be a bespoke integration. The standard MCP server, running on the release they already have, is the better answer.
 
 ## How it works
 
@@ -76,8 +70,7 @@ flowchart LR
     G -.->|"Compiled into<br/>"| C
 ```
 
-> [!IMPORTANT]
-> **b1-mcp-compat does not include, copy, redistribute or reimplement any SAP software, code, schema or documentation, and it is not a substitute for any SAP product.** It only translates between the MCP server and the Service Layer you already run, under your own SAP license. The work behind it is limited to what interoperability requires: the interface facts a client needs to call the Service Layer, which older builds do not publish in usable form. What is gathered is used for that and nothing else.
+
 
 1. **Reference mapping.** A one-time look at how FP 2608, the first release to natively ship annotated $metadata, describes its own interface through the METADATA resource (tables, columns, labels, valid values), so the connector knows what a client can call.
 2. **Build mapping.** The same look at each legacy Business One build, to record which parts of that interface it supports and where it differs.
@@ -90,10 +83,6 @@ Each build's metadata is compiled into the connector. At run time the connector 
 ## Requirements
 
 > ⚠️ **Linux and SAP HANA are not supported yet.**
-
-- **Windows Server 2016 or later** (or Windows 10 or later), with PowerShell 5.1+. The guide below is written for Windows.
-- [.NET 10 SDK](https://dotnet.microsoft.com/download), only on the machine where you build the connector. The published exe is self-contained and needs no .NET on the server.
-- [Node.js 22+](https://nodejs.org/), SAP `b1-mcp-server` is a Node.js application. The connector itself does not use Node.
 
 #### SQL Server read permission
 
@@ -109,7 +98,7 @@ Results are cached for 5 minutes, so a burst of MCP requests costs at most one q
 
 ## Getting started
 
-> To try it from a console instead without installation, see [Run from the console](#run-from-the-console-no-windows-services). 
+> To try it from a console instead, without installing anything, see [Run from the console](#run-from-the-console-no-windows-services).
 
 ### 1. Clone the repository
 
@@ -472,10 +461,6 @@ npm install @modelcontextprotocol/sdk
 .\check-installed.ps1 -McpUrl http://HOST:PORT/mcp
 ```
 
-## See it working with GitHub Copilot
-
-<!-- Screenshots of connecting an MCP client (GitHub Copilot) to the server go here. -->
-
 ## Run from the console
 
 For working on the connector, or to try it without installing any Windows service.
@@ -489,11 +474,13 @@ You need the [requirements](#requirements) first.
    cd b1-mcp-compat
    ```
 
-2. **Save your credentials (once).** Saves them encrypted for your Windows user, for local development only.
+2. **Save your credentials (once).** Creates `.credentials/development.json` with placeholders. Open it and replace them with your details; for local development only.
 
    ```powershell
-   .\tools\dev\set-credentials.ps1
+   .\tools\dev\init-credentials.ps1
    ```
+
+   `.credentials/` is ignored by git, so it is never committed. It holds plain text on purpose: do not share it.
 
 3. **Start the connector.** Leave this window open; after a code change, stop it with Ctrl+C and start it again. The release and build of your Service Layer are required: run `tools\collect\check-build.ps1` on the Service Layer server ([4.5](#45-check-b1-release-and-build)) and pass what it prints. Without `-Build` the script stops.
 
@@ -507,25 +494,14 @@ You need the [requirements](#requirements) first.
 
 4. **Start the MCP server**, in another window. Choose the case that fits you:
 
-   <u>A. You start from scratch.</u> Put SAP `b1-mcp-server` in a `b1-mcp-server/` folder at the repo root ([step 2](#2-add-the-mcp-server-optional)). Build it once, set the [settings of step 5.1](#51-configure-the-mcp-server) in the window and run it:
+   <u>A. You start from scratch.</u> Put SAP `b1-mcp-server` in a `b1-mcp-server/` folder at the repo root ([step 2](#2-add-the-mcp-server-optional)). Build it once and run it; it reads the settings of [step 5.1](#51-configure-the-mcp-server) from `.credentials/development.json`:
 
    ```powershell
    cd b1-mcp-server
    npm install --legacy-peer-deps
    npm run build
-
-   $env:SERVICE_LAYER_ROOT_URL = 'http://127.0.0.1:50300'
-   $env:AUTHENTICATION_MODE   = 'direct'
-   $env:B1_COMPANY_DB         = 'YOUR_COMPANY_DB'
-   $env:B1_USERNAME           = 'YOUR_USER'
-   $env:B1_PASSWORD           = 'YOUR_PASSWORD'
-   $env:HTTPS_ENABLED         = 'false'
-   $env:PORT                  = '3100'
-   $env:MCP_ALLOWED_HOSTS     = 'localhost:3100,127.0.0.1:3100,[::1]:3100,localhost,127.0.0.1'   # must include the port: it is compared with the Host header
-   $env:MCP_HUMAN_CONFIRMATION_ENABLED = 'false'   # local only: skips the confirmation prompt before write operations
-   $env:MCP_RATE_LIMIT_MAX    = '5000'   # requests per minute (the default is 120, too low for real use)
-   $env:NODE_TLS_REJECT_UNAUTHORIZED = '0'   # local only: accepts the Service Layer self-signed or expired certificate
-   node dist\index.js
+   cd ..
+   .\tools\dev\mcp.ps1
    ```
 
    Point any MCP client at `http://localhost:3100/mcp`, or try it with `npx @modelcontextprotocol/inspector`.
