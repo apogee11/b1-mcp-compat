@@ -32,8 +32,8 @@ Thumbs.db
 # SAP's MCP server (or the partner's variant): each clone supplies its own, see README
 /b1-mcp-server/
 
-# Dev profiles (encrypted credentials)
-/.dev/
+# Dev credentials in plain text (local development only, see README)
+/.credentials/
 
 # Maintainer-private notes
 /rea/
@@ -43,3 +43,4 @@ Thumbs.db
 # Python bytecode
 __pycache__/
 *.pyc
+/.dev/

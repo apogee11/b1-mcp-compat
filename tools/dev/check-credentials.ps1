@@ -1,13 +1,11 @@
-# Checks that the details saved by set-credentials.ps1 work: logs in to the Service Layer and opens the SQL Server connection to the company database.
-#   .\check-credentials.ps1                 # profile "default"
+# Checks that the details in .credentials\<Name>.json work: logs in to the Service Layer and opens the SQL Server connection to the company database.
+#   .\check-credentials.ps1                 # profile "development"
 #   .\check-credentials.ps1 -Name cliente2208
 # Exit code 0 when both checks pass, 1 otherwise.
-param([string]$Name = 'default')
+param([string]$Name = 'development')
 $ErrorActionPreference = 'Stop'
-$file = Join-Path $PSScriptRoot "..\..\.dev\$Name.profile"
-if (-not (Test-Path $file)) { throw "No profile '$Name'. Run tools\dev\set-credentials.ps1 -Name $Name first." }
-$secure = Get-Content $file | ConvertTo-SecureString
-$p = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)) | ConvertFrom-Json
+. (Join-Path $PSScriptRoot 'credentials.ps1')
+$p = Get-DevCredentials $Name
 
 # Service Layer usually runs with a self-signed certificate.
 if ($PSVersionTable.PSVersion.Major -lt 6) { [Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; [Net.ServicePointManager]::Expect100Continue = $false }   # the Service Layer mishandles "Expect: 100-continue" (empty credentials, error 206)
